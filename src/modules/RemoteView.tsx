@@ -34,11 +34,21 @@ export default function RemoteView({ url, winId, moduleId, sessionSeed }: Remote
   sessionRef.current = `${winId ?? "remote"}-${moduleId}-${sessionSeed}`;
 
   // Reconnect (with new viewport) when the window is resized — debounced.
+  // The observer's initial fire is ignored (it reports the mount size).
   useEffect(() => {
     const el = boxRef.current;
     if (!el) return;
     let t = 0;
-    const ro = new ResizeObserver(() => {
+    let last: { w: number; h: number } | null = null;
+    const ro = new ResizeObserver((entries) => {
+      const { width, height } = entries[0].contentRect;
+      const cur = { w: Math.round(width), h: Math.round(height) };
+      if (!last) {
+        last = cur;
+        return;
+      }
+      if (Math.abs(cur.w - last.w) < 40 && Math.abs(cur.h - last.h) < 40) return;
+      last = cur;
       window.clearTimeout(t);
       t = window.setTimeout(() => setSizeNonce((n) => n + 1), 500);
     });
@@ -53,6 +63,11 @@ export default function RemoteView({ url, winId, moduleId, sessionSeed }: Remote
     setFailed(null);
     setDisconnected(false);
     setImg(null);
+    // StrictMode double-mounts in dev: the first socket is closed by cleanup
+    // BEFORE any frame arrives — its close/error events must not latch the
+    // failure UI. `stale` marks this effect instance as retired.
+    let stale = false;
+    let gotFrame = false;
 
     const w = Math.max(320, Math.floor(boxRef.current?.clientWidth ?? 800));
     const h = Math.max(240, Math.floor(boxRef.current?.clientHeight ?? 500));
@@ -73,9 +88,12 @@ export default function RemoteView({ url, winId, moduleId, sessionSeed }: Remote
     };
 
     ws.onmessage = (ev) => {
+      if (stale) return;
       try {
         const msg = JSON.parse(String(ev.data));
         if (msg.t === "frame") {
+          gotFrame = true;
+          setFailed(null);
           setImg(`data:image/jpeg;base64,${msg.data}`);
           if (msg.url) onUrl(msg.url);
         } else if (msg.t === "meta") {
@@ -87,16 +105,19 @@ export default function RemoteView({ url, winId, moduleId, sessionSeed }: Remote
         /* malformed frame — skip */
       }
     };
-    ws.onerror = () => setFailed("renderer unreachable — is `npm run remote` up?");
+    ws.onerror = () => {
+      if (!stale) setFailed("renderer unreachable — is `npm run remote` up?");
+    };
     ws.onclose = () => {
-      setImg((have) => {
-        if (!have) setFailed("stream closed before first frame");
-        else setDisconnected(true);
-        return have;
-      });
+      if (stale) return;
+      if (gotFrame) setDisconnected(true);
+      else setFailed("stream closed before first frame");
     };
 
-    return () => ws.close();
+    return () => {
+      stale = true;
+      ws.close();
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [url, moduleId, winId, sessionSeed, sizeNonce]);
 
