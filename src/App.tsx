@@ -31,7 +31,8 @@ export default function App() {
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [activeEdge, setActiveEdge] = useState<Edge | null>(null);
   const [dragActive, setDragActive] = useState(false);
-  const [arrangeMode, setArrangeMode] = useState(true);
+  const [arrangeMode, setArrangeMode] = useState(false);
+  const [minimalHeaders, setMinimalHeaders] = useState(false);
   const [theme, setTheme] = useState<"dark" | "light">(() =>
     typeof localStorage !== "undefined" && localStorage.getItem("opdash:theme") === "light"
       ? "light"
@@ -108,6 +109,7 @@ export default function App() {
   useHotkeys({
     onSlot: setSlot,
     onToggleArrange: () => setArrangeMode((v) => !v),
+    onToggleMinimalHeaders: () => setMinimalHeaders((v) => !v),
     onFocusSearch: () => searchRef.current?.select(),
     onToggleInspector: () => setInspectorOpen((v) => !v),
     onToggleTheme: () => setTheme((t) => (t === "light" ? "dark" : "light")),
@@ -127,7 +129,7 @@ export default function App() {
     <div
       className={`flex h-full flex-col ${arrangeMode ? "arrange-on" : ""} ${
         dragActive ? "ptr-off" : ""
-      }`}
+      } ${minimalHeaders ? "minimal-headers" : ""}`}
     >
       <AppShell
         ref={searchRef}
@@ -175,6 +177,8 @@ export default function App() {
             onRenameSlot={renameSlot}
             arrangeMode={arrangeMode}
             onToggleArrange={() => setArrangeMode((v) => !v)}
+            minimalHeaders={minimalHeaders}
+            onToggleMinimalHeaders={() => setMinimalHeaders((v) => !v)}
             bgIntensity={bgIntensity}
             onBgIntensity={setBgIntensity}
             inspectorOpen={inspectorOpen}

@@ -1,12 +1,14 @@
 import { X } from "lucide-react";
 
 const GESTURES: Array<[string, string]> = [
-  ["arrange switch (m)", "unlock grid dragging/attaching — headers + canvas tint emerald while ON"],
+  ["arrange switch (m) — OFF by default", "unlock grid dragging/attaching — headers + canvas tint emerald while ON"],
   ["Drag window header", "move (grid needs arrange ON; floating always moves)"],
-  ["Pause on a window while dragging", "attach into its scroll stack — violet highlight (~0.4s)"],
+  ["Pause on a window while dragging", "attach its modules as TABS — violet highlight (~0.4s)"],
   ["Drag to a screen edge", "dock it — left / right / bottom (emerald zones)"],
   ["Corner handle, drag", "resize — always available, arrange ON or OFF"],
   ["Double-click window header", "zen focus (fills the canvas)"],
+  ["minimal headers (h)", "window chrome collapses to a slim strip; controls appear on hover"],
+  ["Hover a tab → pop-out icon", "detach that module into its own floating window"],
   ["Click a dock strip", "restore the window"],
   ["tabs | scroll toggle", "switch a multi-module window's view"],
 ];
@@ -29,7 +31,8 @@ const MENU_ACTIONS: Array<[string, string]> = [
 
 const SHORTCUTS: Array<[string, string]> = [
   ["1 / 2 / 3", "switch layout slot"],
-  ["m", "arrange mode on/off"],
+  ["m", "arrange mode on/off (default off)"],
+  ["h", "minimal headers on/off"],
   ["⌘K", "focus command input"],
   ["`", "layout inspector"],
   ["t", "light / dark theme"],

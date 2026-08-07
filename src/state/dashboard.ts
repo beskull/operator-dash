@@ -261,9 +261,11 @@ export function dashboardReducer(state: DashboardState, action: DashboardAction)
           ...target.modules,
           ...source.modules.filter((m) => !target.modules.some((x) => x.id === m.id)),
         ];
+        // Attached modules arrive as TABS — the target keeps its view mode;
+        // the user switches to scroll explicitly via the tabs|scroll toggle.
         const windows: Record<string, WindowState> = {
           ...ws.windows,
-          [action.targetId]: { ...target, modules: merged, viewMode: "stack" },
+          [action.targetId]: { ...target, modules: merged },
         };
         delete windows[action.sourceId];
         persistOverlay(ws.id, windows);

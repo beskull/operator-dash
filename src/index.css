@@ -238,6 +238,28 @@ code {
   box-shadow: inset 0 -1px 0 rgba(16, 185, 129, 0.25);
 }
 
+/* ── Minimal headers (h) ──────────────────────────────────────────────── */
+/* Window chrome collapses to a slim strip; controls fade in on hover. */
+.minimal-headers .win-header {
+  height: 22px;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+.minimal-headers .win-title {
+  font-size: 9.5px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  opacity: 0.75;
+}
+.minimal-headers .win-controls {
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+.minimal-headers .win-header:hover .win-controls,
+.minimal-headers .win-controls:focus-within {
+  opacity: 1;
+}
+
 /* ── react-grid-layout theme overrides ────────────────────────────────── */
 .react-grid-item.react-grid-placeholder {
   background: rgba(52, 211, 153, 0.18) !important;

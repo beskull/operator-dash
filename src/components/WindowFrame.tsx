@@ -108,6 +108,9 @@ export default function WindowFrame({
       case "flip":
         flip();
         break;
+      case "popOut":
+        onDetachModule?.(activeModuleId);
+        break;
       case "remove":
         removable?.();
         break;
@@ -143,12 +146,12 @@ export default function WindowFrame({
           else toggleFocus();
         }}
         title="Drag to move · drag to a screen edge to dock · double-click for zen"
-        className={`win-drag-handle flex h-9 shrink-0 items-center gap-2 border-b border-slate-800/80 px-2.5 light:border-slate-200 ${
+        className={`win-drag-handle win-header group/header flex h-9 shrink-0 items-center gap-2 border-b border-slate-800/80 px-2.5 light:border-slate-200 ${
           isFloating ? "cursor-grab active:cursor-grabbing" : ""
         } ${gridHandle ? "cursor-move" : ""}`}
       >
         <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${STATUS_DOT[win.status ?? "ok"]}`} />
-        <span className="truncate text-[11.5px] font-semibold tracking-wide text-slate-200 light:text-slate-800">
+        <span className="win-title truncate text-[11.5px] font-semibold tracking-wide text-slate-200 light:text-slate-800">
           {win.title}
         </span>
         {isFocused && (
@@ -167,7 +170,7 @@ export default function WindowFrame({
           </span>
         )}
 
-        <div className="ml-auto flex items-center gap-0.5">
+        <div className="win-controls ml-auto flex items-center gap-0.5">
           {isBackdrop ? (
             // Backdrop windows keep it minimal: flip (if two-sided) + bring forward.
             <>
@@ -218,6 +221,7 @@ export default function WindowFrame({
                 isFocused={isFocused}
                 isTwoSided={Boolean(twoSided?.isTwoSided)}
                 removable={Boolean(removable)}
+                canPopOut={modules.length > 1}
                 onAction={handleMenuAction}
               />
             </>
@@ -256,13 +260,24 @@ export default function WindowFrame({
                 }
                 onUpdate((w) => ({ ...w, activeModuleId: m.id }));
               }}
-              className={`whitespace-nowrap rounded-md px-2 py-0.5 text-[10.5px] transition-colors ${
+              className={`group/tab flex items-center whitespace-nowrap rounded-md px-2 py-0.5 text-[10.5px] transition-colors ${
                 m.id === activeModuleId
                   ? "bg-emerald-500/15 text-emerald-300 light:text-emerald-700"
                   : "text-slate-500 hover:bg-slate-800/60 hover:text-slate-300 light:hover:bg-slate-200 light:hover:text-slate-700"
               }`}
             >
               {m.title}
+              <span
+                role="button"
+                title="Pop out into its own floating window"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onDetachModule?.(m.id);
+                }}
+                className="ml-1 hidden rounded-sm p-px opacity-70 hover:bg-slate-600/60 hover:opacity-100 group-hover/tab:inline-block light:hover:bg-slate-300"
+              >
+                <PictureInPicture2 size={9} />
+              </span>
             </button>
           ))}
           {/* tabs | scroll view toggle */}

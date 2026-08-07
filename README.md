@@ -63,15 +63,17 @@ Switching slots: windows in the slot's grid return to their saved rects/tabs; on
 
 | Gesture | Result |
 |---|---|
-| **arrange switch (`m`)** | unlocks grid dragging + attach; canvas and window headers tint emerald while ON. Resize is always available, ON or OFF. |
+| **arrange switch (`m`)** — **OFF by default** | unlocks grid dragging + attach; canvas and window headers tint emerald while ON. Resize is always available, ON or OFF. |
 | Drag window header | move (grid tiles need arrange ON; floating windows always move) |
 | Drag window to a **screen edge** | dock to left / right / bottom — emerald zones light up during any drag (no top edge on purpose) |
-| While dragging, **pause ~0.4s** on another window | arm attach — **violet** highlight — release merges into its scroll stack (works from grid tiles AND floating windows) |
+| While dragging, **pause ~0.4s** on another window | arm attach — **violet** highlight — release merges its modules in as **tabs** (never forced into scroll; toggle to `scroll` if you want the stack) |
 | Drag corner handle | resize (grid SE handle / floating corner grip) — always on |
 | **Double-click header** | zen focus (fill canvas); again to exit |
+| **minimal headers (`h`)** | window chrome collapses to a slim strip; controls fade in on header hover |
+| Hover a tab → **pop-out icon** | detach that module into its own floating window (also: ⋯ menu → "Pop out current tab"; scroll view has per-section detach buttons) |
 | Click dock strip | restore window to its grid rect |
-| `⋯` menu in header | every action, labeled: dock ×3, float/dock, zen, backdrop, flip, remove |
-| `1/2/3` `m` `⌘K` `` ` `` `t` `?` `Esc` | slots · arrange · search · inspector · theme · help · exit zen |
+| `⋯` menu in header | every action, labeled: dock ×3, float/dock, zen, backdrop, pop out, flip, remove |
+| `1/2/3` `m` `h` `⌘K` `` ` `` `t` `?` `Esc` | slots · arrange · minimal · search · inspector · theme · help · exit zen |
 
 Color language: **emerald = position** (move placeholder, dock zones), **violet = merge** (attach overlay).
 
