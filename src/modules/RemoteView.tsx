@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { trackLiveUrl, urlHost } from "../state/liveWindows";
 
 const REMOTE = "http://localhost:5198";
-const POLL_MS = 1600;
+const REMOTE_WS = REMOTE.replace(/^http/, "ws");
 
 interface RemoteViewProps {
   /** Starting URL (the server navigates once per session; links then drive it). */
@@ -14,64 +14,91 @@ interface RemoteViewProps {
 }
 
 /**
- * Renders a frame-blocked site via the local Playwright renderer:
- * JPEG frame polling + click/scroll/keyboard forwarding. Only used for sites
- * that refuse iframing — everything else stays a plain iframe.
+ * Renders a frame-blocked site via the local Playwright renderer over a CDP
+ * screencast: Chromium pushes JPEG frames when the page repaints — no polling.
+ * Clicks, scroll, and keystrokes forward over a separate POST channel.
  */
 export default function RemoteView({ url, winId, moduleId, sessionSeed }: RemoteViewProps) {
   const [img, setImg] = useState<string | null>(null);
   const [failed, setFailed] = useState<string | null>(null);
+  const [disconnected, setDisconnected] = useState(false);
   const [currentUrl, setCurrentUrl] = useState(url);
   const boxRef = useRef<HTMLDivElement>(null);
   const imgRef = useRef<HTMLImageElement>(null);
-  const sessionRef = useRef<string>("");
+  const sessionRef = useRef("");
+  const currentUrlRef = useRef(url);
   const lastWheel = useRef(0);
+  const [sizeNonce, setSizeNonce] = useState(0);
 
   // Fresh session per URL + explicit reload.
   sessionRef.current = `${winId ?? "remote"}-${moduleId}-${sessionSeed}`;
 
+  // Reconnect (with new viewport) when the window is resized — debounced.
   useEffect(() => {
-    let stopped = false;
-    let timer = 0;
-
-    const tick = async () => {
-      const el = boxRef.current;
-      const w = Math.max(320, Math.floor(el?.clientWidth ?? 800));
-      const h = Math.max(240, Math.floor(el?.clientHeight ?? 500));
-      try {
-        const r = await fetch(
-          `${REMOTE}/api/shot?session=${encodeURIComponent(sessionRef.current)}&url=${encodeURIComponent(
-            url
-          )}&w=${w}&h=${h}`
-        );
-        if (!r.ok) throw new Error(`renderer ${r.status}`);
-        const newUrl = r.headers.get("x-remote-url");
-        const blob = await r.blob();
-        if (stopped) return;
-        setImg((old) => {
-          if (old) URL.revokeObjectURL(old);
-          return URL.createObjectURL(blob);
-        });
-        if (newUrl && newUrl !== "about:blank" && newUrl !== currentUrl) {
-          setCurrentUrl(newUrl);
-          // Remote navigation is fully visible server-side, so sub-page
-          // restore works even for cross-origin sites.
-          if (winId) trackLiveUrl(winId, moduleId, newUrl);
-        }
-      } catch (e) {
-        if (!stopped) setFailed(String(e instanceof Error ? e.message : e));
-        return; // stop polling — reload retries
-      }
-      if (!stopped) timer = window.setTimeout(tick, POLL_MS);
-    };
-
-    tick();
+    const el = boxRef.current;
+    if (!el) return;
+    let t = 0;
+    const ro = new ResizeObserver(() => {
+      window.clearTimeout(t);
+      t = window.setTimeout(() => setSizeNonce((n) => n + 1), 500);
+    });
+    ro.observe(el);
     return () => {
-      stopped = true;
-      window.clearTimeout(timer);
+      window.clearTimeout(t);
+      ro.disconnect();
     };
+  }, []);
+
+  useEffect(() => {
+    setFailed(null);
+    setDisconnected(false);
+    setImg(null);
+
+    const w = Math.max(320, Math.floor(boxRef.current?.clientWidth ?? 800));
+    const h = Math.max(240, Math.floor(boxRef.current?.clientHeight ?? 500));
+    const ws = new WebSocket(
+      `${REMOTE_WS}/api/stream?session=${encodeURIComponent(
+        sessionRef.current
+      )}&url=${encodeURIComponent(url)}&w=${w}&h=${h}`
+    );
+
+    const onUrl = (newUrl: string) => {
+      if (newUrl && newUrl !== "about:blank" && newUrl !== currentUrlRef.current) {
+        currentUrlRef.current = newUrl;
+        setCurrentUrl(newUrl);
+        // Remote navigation is visible server-side, so sub-page restore works
+        // even for cross-origin sites.
+        if (winId) trackLiveUrl(winId, moduleId, newUrl);
+      }
+    };
+
+    ws.onmessage = (ev) => {
+      try {
+        const msg = JSON.parse(String(ev.data));
+        if (msg.t === "frame") {
+          setImg(`data:image/jpeg;base64,${msg.data}`);
+          if (msg.url) onUrl(msg.url);
+        } else if (msg.t === "meta") {
+          if (msg.url) onUrl(msg.url);
+        } else if (msg.t === "error") {
+          setFailed(msg.message || "renderer error");
+        }
+      } catch {
+        /* malformed frame — skip */
+      }
+    };
+    ws.onerror = () => setFailed("renderer unreachable — is `npm run remote` up?");
+    ws.onclose = () => {
+      setImg((have) => {
+        if (!have) setFailed("stream closed before first frame");
+        else setDisconnected(true);
+        return have;
+      });
+    };
+
+    return () => ws.close();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [url, moduleId, winId, sessionSeed]);
+  }, [url, moduleId, winId, sessionSeed, sizeNonce]);
 
   const post = (body: Record<string, unknown>) =>
     fetch(`${REMOTE}/api/input`, {
@@ -95,7 +122,7 @@ export default function RemoteView({ url, winId, moduleId, sessionSeed }: Remote
 
   const handleWheel = (e: React.WheelEvent) => {
     const now = performance.now();
-    if (now - lastWheel.current < 120) return;
+    if (now - lastWheel.current < 80) return;
     lastWheel.current = now;
     post({ type: "scroll", deltaY: Math.round(e.deltaY) });
   };
@@ -114,8 +141,7 @@ export default function RemoteView({ url, winId, moduleId, sessionSeed }: Remote
           external restrictions — this site is undisplayable in this format
         </div>
         <div className="max-w-[280px] font-mono text-[9.5px] leading-relaxed text-slate-600 light:text-slate-400">
-          the remote renderer couldn't load it either ({failed}). it may be blocking automated
-          browsers.
+          {failed}
         </div>
       </div>
     );
@@ -142,13 +168,20 @@ export default function RemoteView({ url, winId, moduleId, sessionSeed }: Remote
           />
         ) : (
           <div className="flex h-full items-center justify-center font-mono text-[10.5px] text-slate-500">
-            <span className="animate-pulse">rendering remotely…</span>
+            <span className="animate-pulse">connecting to renderer…</span>
+          </div>
+        )}
+        {disconnected && (
+          <div className="absolute inset-x-0 bottom-0 flex justify-center pb-2">
+            <span className="rounded bg-amber-500/90 px-2 py-0.5 font-mono text-[9px] text-amber-950">
+              stream disconnected — reload to resume
+            </span>
           </div>
         )}
       </div>
       <div className="flex shrink-0 items-center gap-2 border-t border-slate-800/70 bg-slate-950/40 px-2 py-1 light:border-slate-200 light:bg-slate-100">
         <span className="rounded bg-violet-500/15 px-1 py-px font-mono text-[8.5px] uppercase tracking-wide text-violet-300 light:text-violet-700">
-          remote
+          remote · live
         </span>
         <span className="truncate font-mono text-[9.5px] text-slate-500 light:text-slate-500">
           {urlHost(currentUrl)}

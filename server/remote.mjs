@@ -2,15 +2,18 @@
 // Local dev companion to the dashboard (port 5199) — binds localhost only.
 //
 //   GET  /api/check?url=&origin=   → { embeddable, reason? }  header probe
-//   GET  /api/shot?session=&url=&w=&h= → latest JPEG frame (headers carry
-//                                      x-remote-url / x-remote-title)
+//   GET  /api/shot?session=&url=&w=&h= → one-off JPEG frame (debug / fallback)
+//   WS   /api/stream?session=&url=&w=&h= → CDP screencast: JPEG frames pushed
+//                                      when the page repaints (+ meta msgs)
 //   POST /api/input {session,type,x|y|deltaY|key} → click/scroll/key forward
 //
 // Each session = an isolated headless Chromium context (its own cookie jar,
 // so logins inside a remote window persist while this process runs).
 
 import express from "express";
+import { createServer } from "node:http";
 import { chromium } from "playwright";
+import { WebSocketServer } from "ws";
 
 const PORT = 5198;
 const IDLE_TIMEOUT_MS = 5 * 60_000;
@@ -91,7 +94,7 @@ app.get("/api/check", async (req, res) => {
 let browserPromise = null;
 const getBrowser = () => (browserPromise ??= chromium.launch({ headless: true }));
 
-const sessions = new Map(); // id → { page, lastUsed }
+const sessions = new Map(); // id → { page, lastUsed, cdp? }
 const pending = new Map(); // id → Promise<page>
 
 async function getPage(id, url, w, h) {
@@ -180,6 +183,90 @@ app.post("/api/input", async (req, res) => {
   }
 });
 
-app.listen(PORT, "127.0.0.1", () => {
-  console.log(`[remote] renderer listening on http://localhost:${PORT}`);
+// ── CDP screencast streaming ────────────────────────────────────────────────
+
+const server = createServer(app);
+const wss = new WebSocketServer({ noServer: true });
+
+server.on("upgrade", (req, socket, head) => {
+  if (req.url?.startsWith("/api/stream")) {
+    wss.handleUpgrade(req, socket, head, (ws) => wss.emit("connection", ws, req));
+  } else {
+    socket.destroy();
+  }
+});
+
+wss.on("connection", async (ws, req) => {
+  const q = new URL(req.url, "http://localhost").searchParams;
+  const session = String(q.get("session") || "");
+  const url = String(q.get("url") || "");
+  const w = Math.max(320, Math.min(1920, Number(q.get("w")) || 800));
+  const h = Math.max(240, Math.min(1200, Number(q.get("h")) || 500));
+  if (!session || !url) {
+    ws.send(JSON.stringify({ t: "error", message: "session and url required" }));
+    return ws.close();
+  }
+
+  let cdp = null;
+  let metaTimer = null;
+  try {
+    const page = await getPage(session, url, w, h);
+    const rec = sessions.get(session);
+
+    // One screencast per session: a new viewer supersedes the old one.
+    if (rec?.cdp) {
+      try {
+        await rec.cdp.send("Page.stopScreencast");
+        await rec.cdp.detach();
+      } catch {}
+      rec.cdp = null;
+    }
+
+    cdp = await page.context().newCDPSession(page);
+    if (rec) rec.cdp = cdp;
+
+    cdp.on("Page.screencastFrame", (ev) => {
+      if (ws.readyState === 1) {
+        ws.send(JSON.stringify({ t: "frame", data: ev.data, url: page.url() }));
+      }
+      // Frames stop flowing without the ack.
+      cdp.send("Page.screencastFrameAck", { sessionId: ev.sessionId }).catch(() => {});
+    });
+
+    await cdp.send("Page.startScreencast", {
+      format: "jpeg",
+      quality: 60,
+      maxWidth: w,
+      maxHeight: h,
+      everyNthFrame: 1,
+    });
+
+    const sendMeta = async () => {
+      if (ws.readyState !== 1) return;
+      const title = await page.title().catch(() => "");
+      ws.send(JSON.stringify({ t: "meta", url: page.url(), title }));
+      const s = sessions.get(session);
+      if (s) s.lastUsed = Date.now(); // watching keeps the session alive
+    };
+    await sendMeta();
+    metaTimer = setInterval(sendMeta, 3000);
+
+    ws.on("close", async () => {
+      clearInterval(metaTimer);
+      try {
+        await cdp.send("Page.stopScreencast");
+        await cdp.detach();
+      } catch {}
+      const s = sessions.get(session);
+      if (s?.cdp === cdp) s.cdp = null;
+    });
+  } catch (e) {
+    clearInterval(metaTimer);
+    ws.send(JSON.stringify({ t: "error", message: String(e?.message || e) }));
+    ws.close();
+  }
+});
+
+server.listen(PORT, "127.0.0.1", () => {
+  console.log(`[remote] renderer listening on http://localhost:${PORT} (http + ws)`);
 });

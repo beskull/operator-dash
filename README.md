@@ -18,7 +18,7 @@ npm run build      # typecheck + production build
 `server/remote.mjs` (Express + Playwright, port 5198, localhost-only) handles sites that refuse framing:
 
 1. LiveModule first probes `GET /api/check?url=…` — reads the site's `X-Frame-Options` / CSP `frame-ancestors`. Clean sites stay **plain iframes** (untouched path).
-2. Blocked sites route to a headless Chromium session — the server polls JPEG frames into the window and forwards clicks, scroll, and keystrokes back. Each session is an isolated browser context (own cookie jar → logins persist while the renderer runs). Navigation is tracked into localStorage, so sub-pages restore on reload.
+2. Blocked sites route to a headless Chromium session — a **CDP screencast** (`ws …/api/stream`) pushes JPEG frames whenever the page repaints (~16fps observed; no polling), while clicks/scroll/keys forward over `POST /api/input`. Each session is an isolated browser context (own cookie jar → logins persist while the renderer runs). Navigation is tracked into localStorage, so sub-pages restore on reload. Resizing the window renegotiates the remote viewport (debounced).
 3. If even the renderer fails (bot walls etc.), the window shows: *"external restrictions — this site is undisplayable in this format."*
 
 If the renderer isn't running, everything silently falls back to plain iframes. Verified: google.com and cnn.com (both frame-blocked) render and accept input. Security note: no auth, binds 127.0.0.1 — dev tool only.
