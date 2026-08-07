@@ -167,6 +167,7 @@ export default function FloatingLayer({
               onHeaderPointerDown={(e) => {
                 // Only drag from empty header space, not the control buttons.
                 if ((e.target as HTMLElement).closest("button")) return;
+                e.preventDefault(); // don't let a text-selection gesture start
                 dragRef.current = { id: w.id, dx: e.clientX - pos.x, dy: e.clientY - pos.y };
                 setDraggingId(w.id);
                 onDragActive(true);
@@ -176,6 +177,7 @@ export default function FloatingLayer({
             <div
               onPointerDown={(e) => {
                 e.stopPropagation();
+                e.preventDefault();
                 resizeRef.current = {
                   id: w.id,
                   startX: e.clientX,

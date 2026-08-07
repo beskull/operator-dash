@@ -124,7 +124,11 @@ export default function App() {
   }, [focused, updateWindow]);
 
   return (
-    <div className={`flex h-full flex-col ${arrangeMode ? "arrange-on" : ""}`}>
+    <div
+      className={`flex h-full flex-col ${arrangeMode ? "arrange-on" : ""} ${
+        dragActive ? "ptr-off" : ""
+      }`}
+    >
       <AppShell
         ref={searchRef}
         boards={state.boards}
@@ -141,7 +145,7 @@ export default function App() {
       />
 
       {/* ── Workspace canvas ── */}
-      <div className={`relative min-h-0 flex-1 ${dragActive ? "ptr-off" : ""}`}>
+      <div className="relative min-h-0 flex-1">
         <BackgroundCanvas intensity={bgIntensity} />
 
         {/* Arrange-mode wash — a constant signal that grid windows are movable */}

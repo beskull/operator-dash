@@ -212,6 +212,14 @@ code {
   pointer-events: none !important;
 }
 
+/* While a window drag/resize is active, disable text selection everywhere —
+   otherwise moving over other windows highlights their content mid-drag.
+   Scoped to .ptr-off, so normal click-drag-copy inside a window is untouched. */
+.ptr-off,
+.ptr-off * {
+  user-select: none !important;
+}
+
 /* The grid item being dragged must not block hit-testing for attach
    targets underneath it. */
 .react-grid-item.react-draggable-dragging {
