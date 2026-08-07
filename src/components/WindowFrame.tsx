@@ -316,6 +316,7 @@ export default function WindowFrame({
             <div className="flip-face flip-back">
               <ModuleHost
                 module={activeModule}
+                winId={win.id}
                 configLabel={activeConfigLabel}
                 onSetLiveUrl={onSetLiveUrl}
                 onRemoveWindow={removable}
@@ -352,6 +353,7 @@ export default function WindowFrame({
               <div className="h-72">
                 <ModuleHost
                   module={m}
+                  winId={win.id}
                   onSetLiveUrl={(url) => onSetLiveUrl?.(url, m.id)}
                   onRemoveWindow={removable}
                 />
@@ -363,6 +365,7 @@ export default function WindowFrame({
         <div className={`min-h-0 ${fill ? "flex-1 overflow-y-auto" : "max-h-[340px] overflow-y-auto"}`}>
           <ModuleHost
             module={activeModule}
+            winId={win.id}
             onSetLiveUrl={onSetLiveUrl}
             onRemoveWindow={removable}
           />

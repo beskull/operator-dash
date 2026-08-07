@@ -1,4 +1,4 @@
-import type { BoardState, GridPos, ModeKey, ModuleType, WindowState, WorkspaceState } from "../types";
+import type { BoardState, GridPos, ModuleType, WindowState, WorkspaceState } from "../types";
 import { createEmptyWorkspace, MAX_BOARDS, MAX_WORKSPACES } from "../data/boards";
 import { normalizeUrl, persistOverlay, urlHost } from "./liveWindows";
 
@@ -11,7 +11,8 @@ export interface DashboardState {
 export type DashboardAction =
   | { type: "selectBoard"; boardId: string }
   | { type: "selectWorkspace"; workspaceId: string }
-  | { type: "setMode"; mode: ModeKey }
+  | { type: "setSlot"; slot: number }
+  | { type: "renameSlot"; slot: number; name: string }
   | { type: "setGrid"; layout: GridPos[] }
   | { type: "bringToFront"; windowId: string }
   | { type: "updateWindow"; windowId: string; updater: (w: WindowState) => WindowState }
@@ -24,26 +25,29 @@ export type DashboardAction =
   | { type: "detachModule"; windowId: string; moduleId: string };
 
 /** Mode switch: return assigned windows to the grid, apply tab presets. */
-export function applyModeLayout(ws: WorkspaceState, mode: ModeKey): WorkspaceState {
-  const grid = ws.grids[mode];
-  const assigned = new Map(grid.map((g) => [g.i, g]));
+export function applySlot(ws: WorkspaceState, slotIndex: number): WorkspaceState {
+  const slot = ws.slots[slotIndex];
+  if (!slot) return ws;
+  const assigned = new Map(slot.grid.map((g) => [g.i, g]));
 
   const windows: Record<string, WindowState> = {};
   for (const [id, w] of Object.entries(ws.windows)) {
     let next = w;
     const entry = assigned.get(id);
-    // Windows on this mode's grid return home; unassigned ones keep whatever
-    // docked/floating/backdrop state they had (those layers still render them).
-    if (entry && next.layoutState !== "normal") {
-      next = { ...next, layoutState: "normal" };
-    }
-    if (entry?.tab && next.modules.some((m) => m.id === entry.tab)) {
-      next = { ...next, activeModuleId: entry.tab };
+    // Windows in this slot return to their saved rects/tabs; on-grid windows
+    // the slot doesn't know park in the bottom dock (recoverable).
+    if (entry) {
+      if (next.layoutState !== "normal") next = { ...next, layoutState: "normal" };
+      if (entry.tab && next.modules.some((m) => m.id === entry.tab)) {
+        next = { ...next, activeModuleId: entry.tab };
+      }
+    } else if (next.layoutState === "normal") {
+      next = { ...next, layoutState: "flattenedBottom" };
     }
     windows[id] = next;
   }
 
-  return { ...ws, mode, windows };
+  return { ...ws, activeSlot: slotIndex, windows };
 }
 
 /** Default title/description for user-spawned windows, by module type. */
@@ -60,14 +64,9 @@ const MODULE_META: Record<string, { title: string; desc: string }> = {
   generic: { title: "Window", desc: "empty module" },
 };
 
-/** Drop a window id from every mode's grid (used by remove/attach). */
-function stripFromGrids(ws: WorkspaceState, windowId: string): WorkspaceState["grids"] {
-  return Object.fromEntries(
-    Object.entries(ws.grids).map(([mode, layout]) => [
-      mode,
-      layout.filter((g) => g.i !== windowId),
-    ])
-  ) as WorkspaceState["grids"];
+/** Drop a window id from every slot's grid (used by remove/attach). */
+function stripFromGrids(ws: WorkspaceState, windowId: string): WorkspaceState["slots"] {
+  return ws.slots.map((s) => ({ ...s, grid: s.grid.filter((g) => g.i !== windowId) }));
 }
 
 function updateActiveWorkspace(
@@ -98,13 +97,22 @@ export function dashboardReducer(state: DashboardState, action: DashboardAction)
     }
     case "selectWorkspace":
       return { ...state, activeWorkspaceId: action.workspaceId };
-    case "setMode":
-      return updateActiveWorkspace(state, (ws) => applyModeLayout(ws, action.mode));
+    case "setSlot":
+      return updateActiveWorkspace(state, (ws) => applySlot(ws, action.slot));
+    case "renameSlot":
+      return updateActiveWorkspace(state, (ws) => {
+        const name = action.name.trim();
+        if (!name || !ws.slots[action.slot]) return ws;
+        return {
+          ...ws,
+          slots: ws.slots.map((s, i) => (i === action.slot ? { ...s, name } : s)),
+        };
+      });
     case "setGrid":
       // RGL reports only currently-rendered items; merge them over the stored
       // layout so flattened/floating windows keep their last rects.
       return updateActiveWorkspace(state, (ws) => {
-        const prev = ws.grids[ws.mode];
+        const prev = ws.slots[ws.activeSlot].grid;
         const incoming = new Set(action.layout.map((l) => l.i));
         const merged: GridPos[] = [
           ...action.layout.map((l) => ({
@@ -117,21 +125,25 @@ export function dashboardReducer(state: DashboardState, action: DashboardAction)
           })),
           ...prev.filter((p) => !incoming.has(p.i)),
         ];
-        return { ...ws, grids: { ...ws.grids, [ws.mode]: merged } };
+        return {
+          ...ws,
+          slots: ws.slots.map((s, i) => (i === ws.activeSlot ? { ...s, grid: merged } : s)),
+        };
       });
     case "bringToFront":
       // With preventCollision, deliberate overlaps are allowed — so the last
       // window touched repaints on top. RGL paints in array order.
       return updateActiveWorkspace(state, (ws) => {
-        const layout = ws.grids[ws.mode];
+        const layout = ws.slots[ws.activeSlot].grid;
         const entry = layout.find((g) => g.i === action.windowId);
         if (!entry || layout[layout.length - 1]?.i === action.windowId) return ws;
         return {
           ...ws,
-          grids: {
-            ...ws.grids,
-            [ws.mode]: [...layout.filter((g) => g.i !== action.windowId), entry],
-          },
+          slots: ws.slots.map((s, i) =>
+            i === ws.activeSlot
+              ? { ...s, grid: [...layout.filter((g) => g.i !== action.windowId), entry] }
+              : s
+          ),
         };
       });
     case "updateWindow":
@@ -236,7 +248,7 @@ export function dashboardReducer(state: DashboardState, action: DashboardAction)
         const windows = { ...ws.windows };
         delete windows[action.windowId];
         persistOverlay(ws.id, windows);
-        return { ...ws, windows, grids: stripFromGrids(ws, action.windowId) };
+        return { ...ws, windows, slots: stripFromGrids(ws, action.windowId) };
       });
     case "attachWindow":
       // Move the source window's modules into the target as a scroll stack,
@@ -255,7 +267,7 @@ export function dashboardReducer(state: DashboardState, action: DashboardAction)
         };
         delete windows[action.sourceId];
         persistOverlay(ws.id, windows);
-        return { ...ws, windows, grids: stripFromGrids(ws, action.sourceId) };
+        return { ...ws, windows, slots: stripFromGrids(ws, action.sourceId) };
       });
     case "detachModule":
       // Pull one module out of a stack into its own floating window.

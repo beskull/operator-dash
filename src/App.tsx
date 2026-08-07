@@ -13,6 +13,7 @@ import WindowFrame from "./components/WindowFrame";
 import { initialBoards, MAX_BOARDS, MAX_WORKSPACES } from "./data/boards";
 import { useHotkeys } from "./hooks/useHotkeys";
 import { dashboardReducer, selectActive, type DashboardState } from "./state/dashboard";
+import { setTrackingWorkspace } from "./state/liveWindows";
 import type { GridPos, ModuleType, WindowState } from "./types";
 import type { Edge } from "./utils/edges";
 
@@ -47,13 +48,19 @@ export default function App() {
     } catch {}
   }, [theme]);
 
+  // Live iframes report same-origin sub-page navigation against this workspace.
+  useEffect(() => {
+    setTrackingWorkspace(workspace.id);
+  }, [workspace.id]);
+
   const updateWindow = useCallback(
     (windowId: string, updater: (w: WindowState) => WindowState) =>
       dispatch({ type: "updateWindow", windowId, updater }),
     []
   );
-  const setMode = useCallback(
-    (mode: "ops" | "debug" | "build") => dispatch({ type: "setMode", mode }),
+  const setSlot = useCallback((slot: number) => dispatch({ type: "setSlot", slot }), []);
+  const renameSlot = useCallback(
+    (slot: number, name: string) => dispatch({ type: "renameSlot", slot, name }),
     []
   );
   const setLiveUrl = useCallback(
@@ -94,11 +101,11 @@ export default function App() {
   // ── Derived layout ──
   const windows = useMemo(() => Object.values(workspace.windows), [workspace.windows]);
   const focused = windows.find((w) => w.layoutState === "focused");
-  const grid = workspace.grids[workspace.mode];
+  const grid = workspace.slots[workspace.activeSlot]?.grid ?? [];
 
-  // ── Hotkeys: 1/2/3 modes · ⌘K search · ` inspector · t theme · ? help · Esc exit zen ──
+  // ── Hotkeys: 1/2/3 slots · ⌘K search · ` inspector · t theme · ? help · Esc exit zen ──
   useHotkeys({
-    onMode: setMode,
+    onSlot: setSlot,
     onFocusSearch: () => searchRef.current?.select(),
     onToggleInspector: () => setInspectorOpen((v) => !v),
     onToggleTheme: () => setTheme((t) => (t === "light" ? "dark" : "light")),
@@ -147,8 +154,10 @@ export default function App() {
 
         <div className="relative z-10 flex h-full flex-col">
           <ControlPanel
-            mode={workspace.mode}
-            onModeChange={setMode}
+            slots={workspace.slots}
+            activeSlot={workspace.activeSlot}
+            onSlotChange={setSlot}
+            onRenameSlot={renameSlot}
             bgIntensity={bgIntensity}
             onBgIntensity={setBgIntensity}
             inspectorOpen={inspectorOpen}

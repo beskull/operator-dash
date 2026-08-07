@@ -1,9 +1,12 @@
 import { ExternalLink, Globe, Pencil, RotateCw, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { trackLiveUrl } from "../state/liveWindows";
 import type { ModuleDef } from "../types";
 
 interface LiveModuleProps {
   module: ModuleDef;
+  /** Owning window id — used for same-origin sub-page tracking. */
+  winId?: string;
   /** Persist a new URL for this live module. */
   onSetUrl?: (url: string) => void;
   /** Remove the whole live window (only live windows are removable). */
@@ -11,10 +14,31 @@ interface LiveModuleProps {
 }
 
 /** Embeds a live URL via iframe — point a window at any running app. */
-export default function LiveModule({ module, onSetUrl, onRemove }: LiveModuleProps) {
+export default function LiveModule({ module, winId, onSetUrl, onRemove }: LiveModuleProps) {
   const [editing, setEditing] = useState(!module.url);
   const [draft, setDraft] = useState(module.url ?? "");
   const [reloadKey, setReloadKey] = useState(0);
+  const frameRef = useRef<HTMLIFrameElement>(null);
+  const lastTracked = useRef<string | null>(null);
+
+  // Same-origin frames only: remember which sub-page the user navigates to,
+  // so a reload restores it. Cross-origin access throws — skipped silently.
+  useEffect(() => {
+    if (!module.url || !winId) return;
+    lastTracked.current = module.url;
+    const t = setInterval(() => {
+      try {
+        const href = frameRef.current?.contentWindow?.location?.href;
+        if (href && href !== "about:blank" && href !== lastTracked.current) {
+          lastTracked.current = href;
+          trackLiveUrl(winId, module.id, href);
+        }
+      } catch {
+        /* cross-origin — nothing we can read, nothing to do */
+      }
+    }, 2000);
+    return () => clearInterval(t);
+  }, [module.url, module.id, winId]);
 
   const save = () => {
     const url = draft.trim();
@@ -104,6 +128,7 @@ export default function LiveModule({ module, onSetUrl, onRemove }: LiveModulePro
       {/* Frame */}
       {module.url ? (
         <iframe
+          ref={frameRef}
           key={`${module.url}-${reloadKey}`}
           src={module.url}
           title={module.title}

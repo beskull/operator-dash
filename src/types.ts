@@ -26,7 +26,11 @@ export type ModuleType =
   | "live"
   | "generic";
 
-export type ModeKey = "ops" | "debug" | "build";
+/** A user-owned saved arrangement of a workspace's windows. */
+export interface SlotDef {
+  name: string;
+  grid: GridPos[];
+}
 
 export interface ModuleDef {
   id: string;
@@ -84,14 +88,14 @@ export interface GridPos {
 export interface WorkspaceState {
   id: string;
   name: string;
-  mode: ModeKey;
-  windows: Record<string, WindowState>;
   /**
-   * Tiled layout per mode, in react-grid-layout units. Windows whose
-   * layoutState is "normal" render on the grid at these rects; everything
-   * else (flattened/floating/backdrop/focused) renders outside the grid.
+   * The workspace IS the layout: `windows` is the What, slots are the
+   * user-saved arrangements of those windows. Arranging while a slot is
+   * active writes into that slot automatically.
    */
-  grids: Record<ModeKey, GridPos[]>;
+  activeSlot: number;
+  slots: SlotDef[];
+  windows: Record<string, WindowState>;
 }
 
 export interface BoardState {

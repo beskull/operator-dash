@@ -13,8 +13,8 @@ const GESTURES: Array<[string, string]> = [
 const ADDING: Array<[string, string]> = [
   ["+ window (control panel)", "new floating window — live URL, logs, chat, canvas…"],
   ["+ board (top bar)", "a major area — up to 7"],
-  ["+ workspace (top bar)", "a saved layout inside a board — up to 7 per board"],
-  ["1 / 2 / 3 modes", "rearrange THIS workspace's windows into presets"],
+  ["+ workspace (top bar)", "what windows exist + their layouts — up to 7 per board"],
+  ["layout slots 1 / 2 / 3", "your saved arrangements of this workspace — auto-saved, double-click to rename"],
 ];
 
 const MENU_ACTIONS: Array<[string, string]> = [
@@ -27,7 +27,7 @@ const MENU_ACTIONS: Array<[string, string]> = [
 ];
 
 const SHORTCUTS: Array<[string, string]> = [
-  ["1 / 2 / 3", "Ops · Debug · Build mode"],
+  ["1 / 2 / 3", "switch layout slot"],
   ["⌘K", "focus command input"],
   ["`", "layout inspector"],
   ["t", "light / dark theme"],

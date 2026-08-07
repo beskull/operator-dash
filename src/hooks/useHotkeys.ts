@@ -1,8 +1,7 @@
 import { useEffect } from "react";
-import type { ModeKey } from "../types";
 
 interface HotkeyHandlers {
-  onMode: (mode: ModeKey) => void;
+  onSlot: (slot: number) => void;
   onFocusSearch: () => void;
   onToggleInspector: () => void;
   onToggleTheme: () => void;
@@ -10,10 +9,10 @@ interface HotkeyHandlers {
   onExitFocus: () => void;
 }
 
-const MODE_BY_KEY: Record<string, ModeKey> = { "1": "ops", "2": "debug", "3": "build" };
+const SLOT_BY_KEY: Record<string, number> = { "1": 0, "2": 1, "3": 2 };
 
 export function useHotkeys({
-  onMode,
+  onSlot,
   onFocusSearch,
   onToggleInspector,
   onToggleTheme,
@@ -36,9 +35,9 @@ export function useHotkeys({
         return;
       }
 
-      const mode = MODE_BY_KEY[e.key];
-      if (mode) {
-        onMode(mode);
+      const slot = SLOT_BY_KEY[e.key];
+      if (slot !== undefined) {
+        onSlot(slot);
         return;
       }
       if (e.key === "`") onToggleInspector();
@@ -49,5 +48,5 @@ export function useHotkeys({
 
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [onMode, onFocusSearch, onToggleInspector, onToggleTheme, onToggleHelp, onExitFocus]);
+  }, [onSlot, onFocusSearch, onToggleInspector, onToggleTheme, onToggleHelp, onExitFocus]);
 }

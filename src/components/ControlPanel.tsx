@@ -16,13 +16,9 @@ import {
   Workflow,
 } from "lucide-react";
 import { useState } from "react";
-import type { ModeKey, ModuleType } from "../types";
+import type { ModuleType, SlotDef } from "../types";
 
-const MODES: Array<{ key: ModeKey; label: string; icon: typeof Activity; hotkey: string }> = [
-  { key: "ops", label: "Ops mode", icon: Activity, hotkey: "1" },
-  { key: "debug", label: "Debug mode", icon: Bug, hotkey: "2" },
-  { key: "build", label: "Build mode", icon: Hammer, hotkey: "3" },
-];
+const SLOT_ICONS = [Activity, Bug, Hammer];
 
 const ADD_MENU: Array<{ type: ModuleType; label: string; icon: typeof Globe }> = [
   { type: "live", label: "Live URL…", icon: Globe },
@@ -37,8 +33,11 @@ const ADD_MENU: Array<{ type: ModuleType; label: string; icon: typeof Globe }> =
 ];
 
 interface ControlPanelProps {
-  mode: ModeKey;
-  onModeChange: (mode: ModeKey) => void;
+  /** The workspace's saved layout slots (max 3). */
+  slots: SlotDef[];
+  activeSlot: number;
+  onSlotChange: (slot: number) => void;
+  onRenameSlot: (slot: number, name: string) => void;
   bgIntensity: number;
   onBgIntensity: (v: number) => void;
   inspectorOpen: boolean;
@@ -49,10 +48,12 @@ interface ControlPanelProps {
   onAddWindow: (moduleType: ModuleType, url?: string) => void;
 }
 
-/** Top control surface: layout-mode presets, add-window, canvas glow, inspector, help. */
+/** Top control surface: layout slots, add-window, canvas glow, inspector, help. */
 export default function ControlPanel({
-  mode,
-  onModeChange,
+  slots,
+  activeSlot,
+  onSlotChange,
+  onRenameSlot,
   bgIntensity,
   onBgIntensity,
   inspectorOpen,
@@ -78,33 +79,21 @@ export default function ControlPanel({
       <div className="flex items-center gap-2">
         <span
           className="font-mono text-[9px] uppercase tracking-[0.14em] text-slate-600 light:text-slate-400"
-          title="Modes rearrange THIS workspace's windows into saved presets"
+          title="Your saved arrangements of THIS workspace. Arranging auto-saves into the active slot. Double-click a slot to rename it."
         >
-          layout mode
+          layout slots
         </span>
         <div className="flex items-center gap-1 rounded-lg border border-slate-800 bg-slate-900/80 p-1 light:border-slate-300 light:bg-white/85">
-          {MODES.map(({ key, label, icon: Icon, hotkey }) => (
-            <button
-              key={key}
-              onClick={() => onModeChange(key)}
-              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-medium transition-all ${
-                mode === key
-                  ? "bg-emerald-500/15 text-emerald-300 shadow-[0_0_12px_-2px_rgba(52,211,153,0.4)] light:text-emerald-700"
-                  : "text-slate-400 hover:bg-slate-800 hover:text-slate-200 light:text-slate-500 light:hover:bg-slate-100 light:hover:text-slate-800"
-              }`}
-            >
-              <Icon size={12} />
-              {label}
-              <kbd
-                className={`rounded border px-1 font-mono text-[9px] ${
-                  mode === key
-                    ? "border-emerald-500/40 text-emerald-500 light:text-emerald-600"
-                    : "border-slate-700 text-slate-600 light:border-slate-300 light:text-slate-400"
-                }`}
-              >
-                {hotkey}
-              </kbd>
-            </button>
+          {slots.map((slot, i) => (
+            <SlotButton
+              key={i}
+              name={slot.name}
+              icon={SLOT_ICONS[i % SLOT_ICONS.length]}
+              hotkey={String(i + 1)}
+              active={i === activeSlot}
+              onClick={() => onSlotChange(i)}
+              onRename={(name) => onRenameSlot(i, name)}
+            />
           ))}
         </div>
       </div>
@@ -211,5 +200,72 @@ export default function ControlPanel({
         </button>
       </div>
     </div>
+  );
+}
+
+/** A layout-slot button: click switches, double-click renames inline. */
+function SlotButton({
+  name,
+  icon: Icon,
+  hotkey,
+  active,
+  onClick,
+  onRename,
+}: {
+  name: string;
+  icon: typeof Activity;
+  hotkey: string;
+  active: boolean;
+  onClick: () => void;
+  onRename: (name: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(name);
+
+  if (editing) {
+    return (
+      <input
+        autoFocus
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && draft.trim()) {
+            onRename(draft);
+            setEditing(false);
+          }
+          if (e.key === "Escape") setEditing(false);
+        }}
+        onBlur={() => setEditing(false)}
+        className="w-20 rounded-md border border-emerald-500/50 bg-slate-900 px-1.5 py-1 text-[10.5px] text-slate-200 outline-none light:bg-white light:text-slate-800"
+      />
+    );
+  }
+
+  return (
+    <button
+      onClick={onClick}
+      onDoubleClick={() => {
+        setDraft(name);
+        setEditing(true);
+      }}
+      title={`${name} layout · key ${hotkey} · double-click to rename`}
+      className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-medium transition-all ${
+        active
+          ? "bg-emerald-500/15 text-emerald-300 shadow-[0_0_12px_-2px_rgba(52,211,153,0.4)] light:text-emerald-700"
+          : "text-slate-400 hover:bg-slate-800 hover:text-slate-200 light:text-slate-500 light:hover:bg-slate-100 light:hover:text-slate-800"
+      }`}
+    >
+      <Icon size={12} />
+      {name}
+      <kbd
+        className={`rounded border px-1 font-mono text-[9px] ${
+          active
+            ? "border-emerald-500/40 text-emerald-500 light:text-emerald-600"
+            : "border-slate-700 text-slate-600 light:border-slate-300 light:text-slate-400"
+        }`}
+      >
+        {hotkey}
+      </kbd>
+    </button>
   );
 }

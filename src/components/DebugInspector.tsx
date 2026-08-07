@@ -46,8 +46,10 @@ export default function DebugInspector({ workspace, boardName, onClose }: DebugI
           <span className="text-slate-300 light:text-slate-700">{workspace.name}</span>
         </div>
         <div className="flex justify-between text-slate-500">
-          <span>mode</span>
-          <span className="text-emerald-300 light:text-emerald-700">{workspace.mode}</span>
+          <span>layout slot</span>
+          <span className="text-emerald-300 light:text-emerald-700">
+            {workspace.slots[workspace.activeSlot]?.name ?? workspace.activeSlot + 1}
+          </span>
         </div>
         <div className="my-1.5 h-px bg-slate-800 light:bg-slate-200" />
         {windows.map((w) => (

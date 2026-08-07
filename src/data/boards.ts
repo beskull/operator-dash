@@ -1,13 +1,21 @@
 import type {
   BoardState,
   GridPos,
-  ModeKey,
   ModuleDef,
   ModuleType,
+  SlotDef,
   WindowState,
   WorkspaceState,
 } from "../types";
 import { loadOverlay } from "../state/liveWindows";
+
+/** Factory workspaces seed the three slots as Ops/Debug/Built starting
+    arrangements — after that they're the user's to rearrange and rename. */
+const slotsFrom = (g: { ops: GridPos[]; debug: GridPos[]; build: GridPos[] }): SlotDef[] => [
+  { name: "Ops", grid: g.ops },
+  { name: "Debug", grid: g.debug },
+  { name: "Build", grid: g.build },
+];
 
 // ── Small factories ──────────────────────────────────────────────────────────
 
@@ -106,7 +114,7 @@ function createMissionControl(): WorkspaceState {
     modules: [mod("mod-flux-big", "canvas", "Workflow Canvas", "build mode · full canvas")],
   });
 
-  const grids: Record<ModeKey, GridPos[]> = {
+  const grids = {
     ops: [
       { i: main.id, x: 0, y: 0, w: 8, h: 14, tab: "mod-flux" },
       { i: status.id, x: 8, y: 0, w: 4, h: 6 },
@@ -131,9 +139,9 @@ function createMissionControl(): WorkspaceState {
   return {
     id: "ws-mission-control",
     name: "Mission Control",
-    mode: "ops",
+    activeSlot: 0,
     windows: collect([main, status, uptime, sessions, errors, chat, flux]),
-    grids,
+    slots: slotsFrom(grids),
   };
 }
 
@@ -162,7 +170,7 @@ function createAgentFleet(): WorkspaceState {
     modules: [mod("mod-fleet-logs", "logs", "Fleet Logs")],
   });
 
-  const grids: Record<ModeKey, GridPos[]> = {
+  const grids = {
     ops: [
       { i: fleet.id, x: 0, y: 0, w: 8, h: 14 },
       { i: status.id, x: 8, y: 0, w: 4, h: 6 },
@@ -182,9 +190,9 @@ function createAgentFleet(): WorkspaceState {
   return {
     id: "ws-agent-fleet",
     name: "Agent Fleet",
-    mode: "ops",
+    activeSlot: 0,
     windows: collect([fleet, status, logs]),
-    grids,
+    slots: slotsFrom(grids),
   };
 }
 
@@ -222,7 +230,7 @@ function createPatentWorkspace(): WorkspaceState {
     modules: [mod("mod-patent-notes", "docs", "Research Notes", "claim drafts + citations")],
   });
 
-  const grids: Record<ModeKey, GridPos[]> = {
+  const grids = {
     ops: [
       { i: patent.id, x: 0, y: 0, w: 8, h: 12 },
       { i: status.id, x: 8, y: 0, w: 4, h: 6 },
@@ -242,9 +250,9 @@ function createPatentWorkspace(): WorkspaceState {
   return {
     id: "ws-patent-search",
     name: "Patent Search",
-    mode: "ops",
+    activeSlot: 0,
     windows: collect([patent, status, research]),
-    grids,
+    slots: slotsFrom(grids),
   };
 }
 
@@ -274,7 +282,7 @@ function createMarketingWorkspace(): WorkspaceState {
     modules: [mod("mod-mkt-chat", "chat", "Copy Copilot", "ad copy drafts")],
   });
 
-  const grids: Record<ModeKey, GridPos[]> = {
+  const grids = {
     ops: [
       { i: campaigns.id, x: 0, y: 0, w: 8, h: 12 },
       { i: status.id, x: 8, y: 0, w: 4, h: 12 },
@@ -295,22 +303,22 @@ function createMarketingWorkspace(): WorkspaceState {
   return {
     id: "ws-campaigns",
     name: "Campaigns",
-    mode: "ops",
+    activeSlot: 0,
     windows: collect([campaigns, status, chat]),
-    grids,
+    slots: slotsFrom(grids),
   };
 }
 
 // ── Boards ───────────────────────────────────────────────────────────────────
 
-/** A fresh user-created workspace: no windows, empty grid per mode. */
+/** A fresh user-created workspace: no windows, three empty layout slots. */
 export function createEmptyWorkspace(id: string, name: string): WorkspaceState {
   return {
     id,
     name,
-    mode: "ops",
+    activeSlot: 0,
     windows: {},
-    grids: { ops: [], debug: [], build: [] },
+    slots: slotsFrom({ ops: [], debug: [], build: [] }),
   };
 }
 

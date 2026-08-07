@@ -52,6 +52,29 @@ export function persistOverlay(wsId: string, windows: Record<string, WindowState
   saveOverlay(wsId, { live, bindings });
 }
 
+// ── Same-origin sub-page tracking ────────────────────────────────────────────
+// Live iframes poll their own location (same-origin only; cross-origin throws
+// and is skipped). Tracked URLs write straight to the overlay — never through
+// React state, so the iframe doesn't remount/reload mid-session.
+
+let trackingWsId: string | null = null;
+
+export function setTrackingWorkspace(wsId: string): void {
+  trackingWsId = wsId;
+}
+
+export function trackLiveUrl(windowId: string, moduleId: string, url: string): void {
+  if (!trackingWsId) return;
+  const overlay = loadOverlay(trackingWsId);
+  const live = overlay.live.find((w) => w.id === windowId);
+  if (live) {
+    live.modules = live.modules.map((m) => (m.id === moduleId ? { ...m, url } : m));
+  } else {
+    (overlay.bindings[windowId] ??= {})[moduleId] = url;
+  }
+  saveOverlay(trackingWsId, overlay);
+}
+
 export function urlHost(url: string): string {
   try {
     return new URL(url).hostname;

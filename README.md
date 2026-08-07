@@ -34,13 +34,19 @@ npm run build    # typecheck + production build
 - **`v1` (git tag)** — the original baseline. Restore with `git checkout v1`; return with `git checkout main`.
 - **v2 (main)** — top edge dock removed (collided with chrome); user-addable boards/workspaces (max 7 each); "+ window" module picker; board/workspace/layout-mode labels.
 
-## Mental model: board vs. workspace vs. mode
+## Mental model: board → workspace → layout slots
 
-- **Board** = a major area (top-bar pills). Which workspace collection you're in.
-- **Workspace** = a saved layout inside a board (chips). Its **own set of windows** and its own saved grid arrangements per mode.
-- **Layout mode** (`1/2/3`) = three saved arrangements **of the same workspace's windows**. Ops/Debug/Build don't change which windows exist — they rearrange and re-tab the ones already here.
+- **Board** = a major area (top-bar pills). Up to 7, user-addable.
+- **Workspace** = the What AND the Where: its own set of windows **and** their layouts. Up to 7 per board, user-addable.
+- **Layout slots** (the `1/2/3` buttons) = the user's saved arrangements *of that workspace's windows*. There is no preset behavior: arranging windows writes into the active slot automatically, each slot remembers its own state, double-click a slot to rename it (seeded as Ops/Debug/Build on the factory workspaces).
 
-Rule of thumb: workspaces change *what* you have; modes change *where it is*.
+Switching slots: windows in the slot's grid return to their saved rects/tabs; on-grid windows the slot doesn't know park in the bottom dock; floating/backdrop windows are untouched.
+
+## Live iframe persistence
+
+- **Sub-page tracking (same-origin only):** when an embedded app is same-origin with the dashboard (e.g. your localhost dev servers), the frame's current URL is polled (2s) and written to localStorage *without* remounting the iframe — so a reload restores the sub-page you were on. Cross-origin frames can't be read (browser security); those restore to the URL you set.
+- **Cookies/logins:** embedded sites use their own cookies as normal — but cross-origin iframes are *third-party* cookie contexts, which Safari (ITP) and Chrome increasingly restrict. Logins persist best when the app is same-origin, or same parent domain (e.g. dashboard on `ops.yourdomain.com`, apps on `app.yourdomain.com`).
+- **Embed blocking:** sites sending `X-Frame-Options` / CSP `frame-ancestors` refuse to embed anywhere (google/cnn/espn…). Their policy, not this app.
 
 ## Interaction model (press `?` in-app for the cheat sheet)
 

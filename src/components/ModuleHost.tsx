@@ -15,18 +15,22 @@ import StatusCardModule from "../modules/StatusCardModule";
 /** Maps a module definition to its mock view component. */
 export default function ModuleHost({
   module,
+  winId,
   configLabel,
   onSetLiveUrl,
   onRemoveWindow,
 }: {
   module: ModuleDef;
+  winId?: string;
   configLabel?: string;
   onSetLiveUrl?: (url: string) => void;
   onRemoveWindow?: () => void;
 }) {
   // Any module with a URL linked renders live; unlinking reverts to its mock.
   if (module.url || module.type === "live") {
-    return <LiveModule module={module} onSetUrl={onSetLiveUrl} onRemove={onRemoveWindow} />;
+    return (
+      <LiveModule module={module} winId={winId} onSetUrl={onSetLiveUrl} onRemove={onRemoveWindow} />
+    );
   }
   switch (module.type) {
     case "statusCard":
