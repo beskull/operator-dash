@@ -303,6 +303,20 @@ function createMarketingWorkspace(): WorkspaceState {
 
 // ── Boards ───────────────────────────────────────────────────────────────────
 
+/** A fresh user-created workspace: no windows, empty grid per mode. */
+export function createEmptyWorkspace(id: string, name: string): WorkspaceState {
+  return {
+    id,
+    name,
+    mode: "ops",
+    windows: {},
+    grids: { ops: [], debug: [], build: [] },
+  };
+}
+
+export const MAX_BOARDS = 7;
+export const MAX_WORKSPACES = 7;
+
 export const initialBoards: BoardState[] = [
   {
     id: "board-ops",

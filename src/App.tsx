@@ -10,11 +10,10 @@ import FloatingLayer from "./components/FloatingLayer";
 import GridCanvas from "./components/GridCanvas";
 import HelpOverlay from "./components/HelpOverlay";
 import WindowFrame from "./components/WindowFrame";
-import { initialBoards } from "./data/boards";
+import { initialBoards, MAX_BOARDS, MAX_WORKSPACES } from "./data/boards";
 import { useHotkeys } from "./hooks/useHotkeys";
 import { dashboardReducer, selectActive, type DashboardState } from "./state/dashboard";
-import { normalizeUrl } from "./state/liveWindows";
-import type { GridPos, WindowState } from "./types";
+import type { GridPos, ModuleType, WindowState } from "./types";
 import type { Edge } from "./utils/edges";
 
 const initialState: DashboardState = {
@@ -66,8 +65,13 @@ export default function App() {
     (windowId: string) => dispatch({ type: "removeWindow", windowId }),
     []
   );
-  const addLiveWindow = useCallback(
-    (url: string) => dispatch({ type: "addLiveWindow", url: normalizeUrl(url) }),
+  const addWindow = useCallback(
+    (moduleType: ModuleType, url?: string) => dispatch({ type: "addWindow", moduleType, url }),
+    []
+  );
+  const addBoard = useCallback((name: string) => dispatch({ type: "addBoard", name }), []);
+  const addWorkspace = useCallback(
+    (name: string) => dispatch({ type: "addWorkspace", name }),
     []
   );
   const attachWindow = useCallback(
@@ -121,6 +125,10 @@ export default function App() {
         onToggleTheme={() => setTheme((t) => (t === "light" ? "dark" : "light"))}
         onSelectBoard={(boardId) => dispatch({ type: "selectBoard", boardId })}
         onSelectWorkspace={(workspaceId) => dispatch({ type: "selectWorkspace", workspaceId })}
+        onAddBoard={addBoard}
+        onAddWorkspace={addWorkspace}
+        boardsFull={state.boards.length >= MAX_BOARDS}
+        workspacesFull={board.workspaces.length >= MAX_WORKSPACES}
       />
 
       {/* ── Workspace canvas ── */}
@@ -147,10 +155,8 @@ export default function App() {
             onToggleInspector={() => setInspectorOpen((v) => !v)}
             onToggleHelp={() => setHelpOpen(true)}
             windowCount={windows.length}
-            onAddLiveWindow={addLiveWindow}
+            onAddWindow={addWindow}
           />
-
-          <FlattenDock edge="top" windows={windows} onRestore={restoreWindow} />
 
           <div className="flex min-h-0 flex-1 gap-2 px-3 pb-1">
             {/* Left edge: flatten dock */}

@@ -111,8 +111,15 @@ export default function LiveModule({ module, onSetUrl, onRemove }: LiveModulePro
           sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
         />
       ) : (
-        <div className="flex flex-1 items-center justify-center p-6 text-center font-mono text-[10.5px] text-slate-600 light:text-slate-400">
-          paste a URL above to embed a live app here
+        <div className="flex flex-1 items-center justify-center p-6 text-center font-mono text-[10.5px] leading-relaxed text-slate-600 light:text-slate-400">
+          <div className="max-w-[260px] space-y-2">
+            <div>paste a URL above to embed a live app here</div>
+            <div className="text-[9.5px] text-slate-700 light:text-slate-400">
+              note: big sites (google, cnn, espn…) send X-Frame-Options / CSP frame-ancestors and
+              refuse to embed anywhere — it's their policy, not this app. your own apps, dev
+              servers, and dashboards embed fine.
+            </div>
+          </div>
         </div>
       )}
     </div>

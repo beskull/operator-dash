@@ -2,7 +2,7 @@ import { X } from "lucide-react";
 
 const GESTURES: Array<[string, string]> = [
   ["Drag window header", "move (grid tile or floating)"],
-  ["Drag window to a screen edge", "dock it to that edge"],
+  ["Drag window to a screen edge", "dock it — left / right / bottom"],
   ["While dragging, pause on a window", "attach into its scroll stack (~0.4s)"],
   ["Corner handle, drag", "resize (grid + floating)"],
   ["Double-click window header", "zen focus (fills the canvas)"],
@@ -10,8 +10,15 @@ const GESTURES: Array<[string, string]> = [
   ["tabs | scroll toggle", "switch a multi-module window's view"],
 ];
 
+const ADDING: Array<[string, string]> = [
+  ["+ window (control panel)", "new floating window — live URL, logs, chat, canvas…"],
+  ["+ board (top bar)", "a major area — up to 7"],
+  ["+ workspace (top bar)", "a saved layout inside a board — up to 7 per board"],
+  ["1 / 2 / 3 modes", "rearrange THIS workspace's windows into presets"],
+];
+
 const MENU_ACTIONS: Array<[string, string]> = [
-  ["Dock to … edge ×4", "flatten to a side (same as drag-to-edge)"],
+  ["Dock to … edge ×3", "flatten left / right / bottom (same as drag-to-edge)"],
   ["Float / Dock", "pop out as a draggable overlay, or return to grid"],
   ["Zen focus", "fill the canvas, dim everything else"],
   ["Send to background", "live behind all panels (backdrop)"],
@@ -65,6 +72,7 @@ export default function HelpOverlay({ onClose }: { onClose: () => void }) {
         </div>
         <div className="space-y-5">
           <Section title="Gestures" rows={GESTURES} />
+          <Section title="Adding things" rows={ADDING} />
           <Section title="Window menu (⋯ in every header)" rows={MENU_ACTIONS} />
           <Section title="Keyboard" rows={SHORTCUTS} />
         </div>

@@ -1,4 +1,5 @@
-import type { BoardState, GridPos, ModeKey, WindowState, WorkspaceState } from "../types";
+import type { BoardState, GridPos, ModeKey, ModuleType, WindowState, WorkspaceState } from "../types";
+import { createEmptyWorkspace, MAX_BOARDS, MAX_WORKSPACES } from "../data/boards";
 import { normalizeUrl, persistOverlay, urlHost } from "./liveWindows";
 
 export interface DashboardState {
@@ -14,7 +15,9 @@ export type DashboardAction =
   | { type: "setGrid"; layout: GridPos[] }
   | { type: "bringToFront"; windowId: string }
   | { type: "updateWindow"; windowId: string; updater: (w: WindowState) => WindowState }
-  | { type: "addLiveWindow"; url: string }
+  | { type: "addBoard"; name: string }
+  | { type: "addWorkspace"; name: string }
+  | { type: "addWindow"; moduleType: ModuleType; url?: string }
   | { type: "setLiveUrl"; windowId: string; url: string; moduleId?: string }
   | { type: "removeWindow"; windowId: string }
   | { type: "attachWindow"; sourceId: string; targetId: string }
@@ -42,6 +45,20 @@ export function applyModeLayout(ws: WorkspaceState, mode: ModeKey): WorkspaceSta
 
   return { ...ws, mode, windows };
 }
+
+/** Default title/description for user-spawned windows, by module type. */
+const MODULE_META: Record<string, { title: string; desc: string }> = {
+  live: { title: "Live view", desc: "embedded URL" },
+  logs: { title: "Log Stream", desc: "streaming output" },
+  statusCard: { title: "Status Card", desc: "service health" },
+  dashboard: { title: "Metrics", desc: "throughput + rates" },
+  chat: { title: "Console", desc: "quick chat surface" },
+  docs: { title: "Notes", desc: "docs surface" },
+  sessions: { title: "Sessions", desc: "active sessions" },
+  canvas: { title: "Flux Canvas", desc: "workflow graph" },
+  webapp: { title: "Code Editor", desc: "editor surface" },
+  generic: { title: "Window", desc: "empty module" },
+};
 
 /** Drop a window id from every mode's grid (used by remove/attach). */
 function stripFromGrids(ws: WorkspaceState, windowId: string): WorkspaceState["grids"] {
@@ -129,20 +146,57 @@ export function dashboardReducer(state: DashboardState, action: DashboardAction)
             }
           : ws
       );
-    case "addLiveWindow": {
+    case "addBoard": {
+      if (state.boards.length >= MAX_BOARDS) return state;
+      const boardId = `board-${Date.now()}`;
+      const ws = createEmptyWorkspace(`ws-${Date.now()}`, "Main");
+      const board: BoardState = {
+        id: boardId,
+        name: action.name.trim() || "New board",
+        workspaces: [ws],
+      };
+      return {
+        ...state,
+        boards: [...state.boards, board],
+        activeBoardId: board.id,
+        activeWorkspaceId: ws.id,
+      };
+    }
+    case "addWorkspace": {
+      const board = state.boards.find((b) => b.id === state.activeBoardId);
+      if (!board || board.workspaces.length >= MAX_WORKSPACES) return state;
+      const ws = createEmptyWorkspace(`ws-${Date.now()}`, action.name.trim() || "Workspace");
+      return {
+        ...state,
+        boards: state.boards.map((b) =>
+          b.id === board.id ? { ...b, workspaces: [...b.workspaces, ws] } : b
+        ),
+        activeWorkspaceId: ws.id,
+      };
+    }
+    case "addWindow": {
       return updateActiveWorkspace(state, (ws) => {
         const id = `live-${Date.now()}`;
-        const host = urlHost(action.url);
+        const url = action.url ? normalizeUrl(action.url) : undefined;
+        const meta = MODULE_META[action.moduleType] ?? MODULE_META.generic;
+        const title = action.moduleType === "live" && url ? urlHost(url) : meta.title;
+        const moduleId = `${id}-mod`;
         const win: WindowState = {
           id,
-          title: host || "Live view",
+          title,
           status: "ok",
           layoutState: "floating",
-          floatPos: { x: 260, y: 150 },
+          floatPos: { x: 280, y: 160 },
           modules: [
-            { id: `${id}-mod`, type: "live", title: host || "Live view", description: action.url, url: action.url },
+            {
+              id: moduleId,
+              type: action.moduleType,
+              title,
+              description: url ?? meta.desc,
+              ...(url ? { url } : {}),
+            },
           ],
-          activeModuleId: `${id}-mod`,
+          activeModuleId: moduleId,
         };
         const windows = { ...ws.windows, [id]: win };
         persistOverlay(ws.id, windows);

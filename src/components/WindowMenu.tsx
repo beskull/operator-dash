@@ -9,7 +9,6 @@ import {
   PanelBottomClose,
   PanelLeftClose,
   PanelRightClose,
-  PanelTopClose,
   PictureInPicture2,
   X,
 } from "lucide-react";
@@ -18,7 +17,6 @@ import { useRef, useState } from "react";
 export type WindowMenuAction =
   | "flattenLeft"
   | "flattenRight"
-  | "flattenTop"
   | "flattenBottom"
   | "float"
   | "focus"
@@ -60,7 +58,6 @@ export default function WindowMenu({
   }> = [
     { key: "flattenLeft", label: "Dock to left edge", icon: PanelLeftClose },
     { key: "flattenRight", label: "Dock to right edge", icon: PanelRightClose },
-    { key: "flattenTop", label: "Dock to top edge", icon: PanelTopClose },
     { key: "flattenBottom", label: "Dock to bottom edge", icon: PanelBottomClose },
     isFloating
       ? { key: "float", label: "Dock back to grid", icon: ArrowDownToLine }

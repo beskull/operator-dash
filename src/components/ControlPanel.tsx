@@ -1,11 +1,39 @@
-import { Activity, Bug, CircleHelp, Globe, Hammer, Terminal } from "lucide-react";
+import {
+  Activity,
+  BarChart3,
+  Bug,
+  CircleHelp,
+  Code2,
+  FileText,
+  Globe,
+  Hammer,
+  HeartPulse,
+  MessageSquare,
+  Plus,
+  ScrollText,
+  Terminal,
+  Users,
+  Workflow,
+} from "lucide-react";
 import { useState } from "react";
-import type { ModeKey } from "../types";
+import type { ModeKey, ModuleType } from "../types";
 
 const MODES: Array<{ key: ModeKey; label: string; icon: typeof Activity; hotkey: string }> = [
   { key: "ops", label: "Ops mode", icon: Activity, hotkey: "1" },
   { key: "debug", label: "Debug mode", icon: Bug, hotkey: "2" },
   { key: "build", label: "Build mode", icon: Hammer, hotkey: "3" },
+];
+
+const ADD_MENU: Array<{ type: ModuleType; label: string; icon: typeof Globe }> = [
+  { type: "live", label: "Live URL…", icon: Globe },
+  { type: "logs", label: "Log stream", icon: ScrollText },
+  { type: "statusCard", label: "Status card", icon: HeartPulse },
+  { type: "dashboard", label: "Metrics", icon: BarChart3 },
+  { type: "chat", label: "Chat console", icon: MessageSquare },
+  { type: "docs", label: "Notes / docs", icon: FileText },
+  { type: "sessions", label: "Sessions", icon: Users },
+  { type: "canvas", label: "Flux canvas", icon: Workflow },
+  { type: "webapp", label: "Code editor", icon: Code2 },
 ];
 
 interface ControlPanelProps {
@@ -17,10 +45,11 @@ interface ControlPanelProps {
   onToggleInspector: () => void;
   onToggleHelp: () => void;
   windowCount: number;
-  onAddLiveWindow: (url: string) => void;
+  /** Spawn a new floating window of the given module type. */
+  onAddWindow: (moduleType: ModuleType, url?: string) => void;
 }
 
-/** Top control surface: mode presets, live-URL spawner, canvas intensity, inspector. */
+/** Top control surface: layout-mode presets, add-window, canvas glow, inspector, help. */
 export default function ControlPanel({
   mode,
   onModeChange,
@@ -30,69 +59,114 @@ export default function ControlPanel({
   onToggleInspector,
   onToggleHelp,
   windowCount,
-  onAddLiveWindow,
+  onAddWindow,
 }: ControlPanelProps) {
-  const [liveOpen, setLiveOpen] = useState(false);
+  const [addOpen, setAddOpen] = useState(false);
+  const [urlMode, setUrlMode] = useState(false);
   const [draft, setDraft] = useState("");
 
-  const submitLive = () => {
+  const submitUrl = () => {
     const url = draft.trim();
     if (!url) return;
-    onAddLiveWindow(url);
+    onAddWindow("live", url);
     setDraft("");
-    setLiveOpen(false);
+    setUrlMode(false);
   };
 
   return (
     <div className="flex items-center gap-4 px-3 py-2">
-      <div className="flex items-center gap-1 rounded-lg border border-slate-800 bg-slate-900/80 p-1 light:border-slate-300 light:bg-white/85">
-        {MODES.map(({ key, label, icon: Icon, hotkey }) => (
-          <button
-            key={key}
-            onClick={() => onModeChange(key)}
-            className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-medium transition-all ${
-              mode === key
-                ? "bg-emerald-500/15 text-emerald-300 shadow-[0_0_12px_-2px_rgba(52,211,153,0.4)] light:text-emerald-700"
-                : "text-slate-400 hover:bg-slate-800 hover:text-slate-200 light:text-slate-500 light:hover:bg-slate-100 light:hover:text-slate-800"
-            }`}
-          >
-            <Icon size={12} />
-            {label}
-            <kbd
-              className={`rounded border px-1 font-mono text-[9px] ${
+      <div className="flex items-center gap-2">
+        <span
+          className="font-mono text-[9px] uppercase tracking-[0.14em] text-slate-600 light:text-slate-400"
+          title="Modes rearrange THIS workspace's windows into saved presets"
+        >
+          layout mode
+        </span>
+        <div className="flex items-center gap-1 rounded-lg border border-slate-800 bg-slate-900/80 p-1 light:border-slate-300 light:bg-white/85">
+          {MODES.map(({ key, label, icon: Icon, hotkey }) => (
+            <button
+              key={key}
+              onClick={() => onModeChange(key)}
+              className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 text-[11px] font-medium transition-all ${
                 mode === key
-                  ? "border-emerald-500/40 text-emerald-500 light:text-emerald-600"
-                  : "border-slate-700 text-slate-600 light:border-slate-300 light:text-slate-400"
+                  ? "bg-emerald-500/15 text-emerald-300 shadow-[0_0_12px_-2px_rgba(52,211,153,0.4)] light:text-emerald-700"
+                  : "text-slate-400 hover:bg-slate-800 hover:text-slate-200 light:text-slate-500 light:hover:bg-slate-100 light:hover:text-slate-800"
               }`}
             >
-              {hotkey}
-            </kbd>
-          </button>
-        ))}
+              <Icon size={12} />
+              {label}
+              <kbd
+                className={`rounded border px-1 font-mono text-[9px] ${
+                  mode === key
+                    ? "border-emerald-500/40 text-emerald-500 light:text-emerald-600"
+                    : "border-slate-700 text-slate-600 light:border-slate-300 light:text-slate-400"
+                }`}
+              >
+                {hotkey}
+              </kbd>
+            </button>
+          ))}
+        </div>
       </div>
 
-      {/* Spawn a live-URL window */}
-      <div className="flex items-center gap-1.5">
+      {/* Add a new window (its own button — module picker) */}
+      <div className="relative flex items-center gap-1.5">
         <button
-          onClick={() => setLiveOpen((v) => !v)}
-          title="Open a live URL in a new floating window"
+          onClick={() => {
+            setAddOpen((v) => !v);
+            setUrlMode(false);
+          }}
+          title="Add a new floating window"
           className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10.5px] transition-colors ${
-            liveOpen
+            addOpen
               ? "border-cyan-500/50 bg-cyan-500/10 text-cyan-300 light:text-cyan-700"
               : "border-slate-800 bg-slate-900/80 text-slate-400 hover:text-slate-200 light:border-slate-300 light:bg-white/85 light:text-slate-500 light:hover:text-slate-800"
           }`}
         >
-          <Globe size={11} />
-          live URL
+          <Plus size={11} />
+          window
         </button>
-        {liveOpen && (
+        {addOpen && (
+          <>
+            <div
+              className="fixed inset-0 z-[45]"
+              onClick={() => {
+                setAddOpen(false);
+                setUrlMode(false);
+              }}
+            />
+            <div className="anim-fade-in absolute left-0 top-full z-[46] mt-1 w-44 overflow-hidden rounded-lg border border-slate-700/80 bg-[#12151d]/98 py-1 shadow-2xl backdrop-blur light:border-slate-300 light:bg-white/98">
+              {ADD_MENU.map(({ type, label, icon: Icon }) => (
+                <button
+                  key={type}
+                  onClick={() => {
+                    if (type === "live") {
+                      setUrlMode(true);
+                    } else {
+                      onAddWindow(type);
+                      setAddOpen(false);
+                    }
+                  }}
+                  className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[11px] text-slate-300 transition-colors hover:bg-slate-700/60 light:text-slate-700 light:hover:bg-slate-100"
+                >
+                  <Icon size={12} className="shrink-0 opacity-70" />
+                  {label}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+        {addOpen && urlMode && (
           <input
             autoFocus
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
             onKeyDown={(e) => {
-              if (e.key === "Enter") submitLive();
-              if (e.key === "Escape") setLiveOpen(false);
+              if (e.key === "Enter") submitUrl();
+              if (e.key === "Escape") {
+                setUrlMode(false);
+                setAddOpen(false);
+              }
             }}
             placeholder="localhost:3000 ⏎"
             className="w-52 rounded-md border border-cyan-500/40 bg-slate-900 px-2 py-1 font-mono text-[10.5px] text-slate-200 outline-none placeholder:text-slate-600 light:border-cyan-600/40 light:bg-white light:text-slate-800 light:placeholder:text-slate-400"

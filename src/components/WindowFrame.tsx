@@ -93,9 +93,6 @@ export default function WindowFrame({
       case "flattenRight":
         setLayout("flattenedRight");
         break;
-      case "flattenTop":
-        setLayout("flattenedTop");
-        break;
       case "flattenBottom":
         setLayout("flattenedBottom");
         break;

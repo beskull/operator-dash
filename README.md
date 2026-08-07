@@ -29,12 +29,25 @@ npm run build    # typecheck + production build
 - **Attach gesture**: floating windows only. Hit-test + **dwell gate** (~400ms near-stationary hover arms the drop target) in `FloatingLayer.tsx` — dragging across windows never accidentally attaches. On attach, modules merge into the target and `viewMode: "stack"` renders them as one scroll column.
 - **Iframe gotcha**: pointer events get swallowed by embedded live content mid-drag; the `.ptr-off` class kills iframe hit-testing during grid drags, floating moves, and resizes.
 
+## Versions
+
+- **`v1` (git tag)** — the original baseline. Restore with `git checkout v1`; return with `git checkout main`.
+- **v2 (main)** — top edge dock removed (collided with chrome); user-addable boards/workspaces (max 7 each); "+ window" module picker; board/workspace/layout-mode labels.
+
+## Mental model: board vs. workspace vs. mode
+
+- **Board** = a major area (top-bar pills). Which workspace collection you're in.
+- **Workspace** = a saved layout inside a board (chips). Its **own set of windows** and its own saved grid arrangements per mode.
+- **Layout mode** (`1/2/3`) = three saved arrangements **of the same workspace's windows**. Ops/Debug/Build don't change which windows exist — they rearrange and re-tab the ones already here.
+
+Rule of thumb: workspaces change *what* you have; modes change *where it is*.
+
 ## Interaction model (press `?` in-app for the cheat sheet)
 
 | Gesture | Result |
 |---|---|
 | Drag window header | move (grid tile via RGL, or floating overlay) |
-| Drag window to a **screen edge** | dock (flatten) to that edge — zones light up during any drag |
+| Drag window to a **screen edge** | dock to left / right / bottom — zones light up during any drag (no top edge on purpose) |
 | While dragging, **pause ~0.4s** on another window | arm attach → release merges into its scroll stack |
 | Drag corner handle | resize (grid SE handle / floating corner grip) |
 | **Double-click header** | zen focus (fill canvas); again to exit |
@@ -54,7 +67,9 @@ npm run build    # typecheck + production build
 - **Debug inspector** — bottom-right live dump of every window and its `layoutState`.
 - **Background canvas** — system-map SVG + ambient blobs; "canvas glow" slider on the control panel adjusts intensity live.
 - **Light mode** — sun/moon toggle in the top bar (or `t`), persisted in localStorage, applied pre-paint. Dark is the base theme; light is a `light:` variant layered on top. Terminal-style modules (logs, code editor, flux canvas) intentionally keep dark surfaces in both themes.
-- **Live URL linking, everywhere** — every window header has a link button (Link2 icon) that binds the *active tab* to any URL; the view becomes a live iframe (mini browser chrome: edit / reload / open-in-tab). "Clear" reverts to the built-in mock view. The control panel's "live URL" button additionally spawns brand-new floating live windows (removable via ✕). URLs persist per-workspace in localStorage as bindings layered over the mock data, so factory windows never go stale.
+- **Live URL linking, everywhere** — every window header has a link button (Link2 icon) that binds the *active tab* to any URL; the view becomes a live iframe (mini browser chrome: edit / reload / open-in-tab). "Clear" reverts to the built-in mock view. URLs persist per-workspace in localStorage as bindings layered over the mock data, so factory windows never go stale.
+  - **Embed caveat:** sites sending `X-Frame-Options` / CSP `frame-ancestors` (google.com, cnn.com, espn.com, most big properties) refuse to render in *any* iframe on *any* host — it's the remote site's policy, not this app or localhost. Your own apps, dev servers, and internal dashboards embed fine; use open-in-tab for the rest.
+- **Add anything** — `+ window` on the control panel (module picker: live URL, logs, status, metrics, chat, docs, sessions, canvas, code editor — spawned floating, removable via ✕, persisted). `+ board` / `+ workspace` in the top bar (max 7 each, inline name fields).
 - **Backdrop windows** — the Layers button on any window sends it behind all panels (above the background canvas). Still interactive where panels don't cover it. "Bring to front" (ArrowUpFromLine) restores it.
 - **Resizing** — grid windows resize via RGL's corner handle; floating windows have a corner grip (bottom-right, drag). Both persist in state.
 - **Drag-to-attach (scroll stacks)** — float a window, drag it over another window, and **pause ~0.4s**: the target arms with "release to attach". Dropping merges the dragged window's modules into the target as a **scroll stack** — sticky section headers, one long scroll. Stack section headers have an Unlink button to detach a module back into its own floating window. Multi-module windows get a `tabs | scroll` toggle in the tab strip to switch views any time.

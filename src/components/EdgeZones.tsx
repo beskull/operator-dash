@@ -1,4 +1,4 @@
-import { PanelBottomClose, PanelLeftClose, PanelRightClose, PanelTopClose } from "lucide-react";
+import { PanelBottomClose, PanelLeftClose, PanelRightClose } from "lucide-react";
 import type { Edge } from "../utils/edges";
 
 interface EdgeZonesProps {
@@ -8,10 +8,10 @@ interface EdgeZonesProps {
   active: Edge | null;
 }
 
+// No top zone on purpose — it collides with the board/workspace/mode chrome.
 const ZONES: Array<{ edge: Edge; label: string; icon: typeof PanelLeftClose }> = [
   { edge: "left", label: "Dock left", icon: PanelLeftClose },
   { edge: "right", label: "Dock right", icon: PanelRightClose },
-  { edge: "top", label: "Dock top", icon: PanelTopClose },
   { edge: "bottom", label: "Dock bottom", icon: PanelBottomClose },
 ];
 
@@ -34,9 +34,7 @@ export default function EdgeZones({ visible, active }: EdgeZonesProps) {
         ? "left-1 top-1 bottom-1 w-11 flex-col"
         : edge === "right"
           ? "right-1 top-1 bottom-1 w-11 flex-col"
-          : edge === "top"
-            ? "top-1 left-14 right-14 h-10 flex-row"
-            : "bottom-1 left-14 right-14 h-10 flex-row";
+          : "bottom-1 left-14 right-14 h-10 flex-row";
     return `${base} ${tone} ${pos}`;
   };
 
