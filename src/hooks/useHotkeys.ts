@@ -6,6 +6,7 @@ interface HotkeyHandlers {
   onToggleInspector: () => void;
   onToggleTheme: () => void;
   onToggleHelp: () => void;
+  onToggleArrange: () => void;
   onExitFocus: () => void;
 }
 
@@ -17,6 +18,7 @@ export function useHotkeys({
   onToggleInspector,
   onToggleTheme,
   onToggleHelp,
+  onToggleArrange,
   onExitFocus,
 }: HotkeyHandlers) {
   useEffect(() => {
@@ -42,11 +44,12 @@ export function useHotkeys({
       }
       if (e.key === "`") onToggleInspector();
       if (e.key.toLowerCase() === "t") onToggleTheme();
+      if (e.key.toLowerCase() === "m") onToggleArrange();
       if (e.key === "?") onToggleHelp();
       if (e.key === "Escape") onExitFocus();
     };
 
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
-  }, [onSlot, onFocusSearch, onToggleInspector, onToggleTheme, onToggleHelp, onExitFocus]);
+  }, [onSlot, onFocusSearch, onToggleInspector, onToggleTheme, onToggleHelp, onToggleArrange, onExitFocus]);
 }

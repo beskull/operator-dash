@@ -9,6 +9,7 @@ import {
   Hammer,
   HeartPulse,
   MessageSquare,
+  Move,
   Plus,
   ScrollText,
   Terminal,
@@ -38,6 +39,8 @@ interface ControlPanelProps {
   activeSlot: number;
   onSlotChange: (slot: number) => void;
   onRenameSlot: (slot: number, name: string) => void;
+  arrangeMode: boolean;
+  onToggleArrange: () => void;
   bgIntensity: number;
   onBgIntensity: (v: number) => void;
   inspectorOpen: boolean;
@@ -54,6 +57,8 @@ export default function ControlPanel({
   activeSlot,
   onSlotChange,
   onRenameSlot,
+  arrangeMode,
+  onToggleArrange,
   bgIntensity,
   onBgIntensity,
   inspectorOpen,
@@ -76,6 +81,31 @@ export default function ControlPanel({
 
   return (
     <div className="flex items-center gap-4 px-3 py-2">
+      {/* Arrange mode: unlocks grid dragging + attach. Resize is always on. */}
+      <button
+        onClick={onToggleArrange}
+        title="Arrange mode (m): drag grid windows to move them, pause on a window to attach. Off = grid is locked against accidental moves; resize still works."
+        className={`flex items-center gap-2 rounded-lg border px-2.5 py-1 text-[10.5px] font-medium transition-all ${
+          arrangeMode
+            ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300 light:text-emerald-700"
+            : "border-slate-800 bg-slate-900/80 text-slate-500 hover:text-slate-300 light:border-slate-300 light:bg-white/85 light:hover:text-slate-700"
+        }`}
+      >
+        <Move size={11} />
+        arrange
+        <span
+          className={`relative h-3.5 w-6 rounded-full transition-colors ${
+            arrangeMode ? "bg-emerald-500/70" : "bg-slate-700 light:bg-slate-300"
+          }`}
+        >
+          <span
+            className={`absolute top-0.5 h-2.5 w-2.5 rounded-full bg-white transition-all ${
+              arrangeMode ? "left-3" : "left-0.5"
+            }`}
+          />
+        </span>
+      </button>
+
       <div className="flex items-center gap-2">
         <span
           className="font-mono text-[9px] uppercase tracking-[0.14em] text-slate-600 light:text-slate-400"

@@ -31,6 +31,7 @@ export default function App() {
   const [dropTargetId, setDropTargetId] = useState<string | null>(null);
   const [activeEdge, setActiveEdge] = useState<Edge | null>(null);
   const [dragActive, setDragActive] = useState(false);
+  const [arrangeMode, setArrangeMode] = useState(true);
   const [theme, setTheme] = useState<"dark" | "light">(() =>
     typeof localStorage !== "undefined" && localStorage.getItem("opdash:theme") === "light"
       ? "light"
@@ -106,6 +107,7 @@ export default function App() {
   // ── Hotkeys: 1/2/3 slots · ⌘K search · ` inspector · t theme · ? help · Esc exit zen ──
   useHotkeys({
     onSlot: setSlot,
+    onToggleArrange: () => setArrangeMode((v) => !v),
     onFocusSearch: () => searchRef.current?.select(),
     onToggleInspector: () => setInspectorOpen((v) => !v),
     onToggleTheme: () => setTheme((t) => (t === "light" ? "dark" : "light")),
@@ -122,7 +124,7 @@ export default function App() {
   }, [focused, updateWindow]);
 
   return (
-    <div className="flex h-full flex-col">
+    <div className={`flex h-full flex-col ${arrangeMode ? "arrange-on" : ""}`}>
       <AppShell
         ref={searchRef}
         boards={state.boards}
@@ -139,8 +141,17 @@ export default function App() {
       />
 
       {/* ── Workspace canvas ── */}
-      <div className="relative min-h-0 flex-1">
+      <div className={`relative min-h-0 flex-1 ${dragActive ? "ptr-off" : ""}`}>
         <BackgroundCanvas intensity={bgIntensity} />
+
+        {/* Arrange-mode wash — a constant signal that grid windows are movable */}
+        <div
+          className={`pointer-events-none absolute inset-0 transition-opacity duration-300 ${
+            arrangeMode ? "opacity-100" : "opacity-0"
+          }`}
+        >
+          <div className="absolute inset-0 bg-emerald-500/[0.05] light:bg-emerald-500/[0.07]" />
+        </div>
 
         {/* Backdrop windows live behind the grid */}
         <BackdropLayer
@@ -158,6 +169,8 @@ export default function App() {
             activeSlot={workspace.activeSlot}
             onSlotChange={setSlot}
             onRenameSlot={renameSlot}
+            arrangeMode={arrangeMode}
+            onToggleArrange={() => setArrangeMode((v) => !v)}
             bgIntensity={bgIntensity}
             onBgIntensity={setBgIntensity}
             inspectorOpen={inspectorOpen}
@@ -176,6 +189,7 @@ export default function App() {
               <GridCanvas
                 grid={grid}
                 windows={workspace.windows}
+                arrangeMode={arrangeMode}
                 onGridChange={setGrid}
                 onWindowUpdate={updateWindow}
                 onSetLiveUrl={setLiveUrl}
@@ -184,6 +198,8 @@ export default function App() {
                 onBringToFront={bringToFront}
                 onEdgeHover={setActiveEdge}
                 onDragActive={setDragActive}
+                onHoverDropTarget={setDropTargetId}
+                onAttachWindow={attachWindow}
                 dropTargetId={dropTargetId}
                 dimmed={Boolean(focused)}
               />

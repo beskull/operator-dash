@@ -184,6 +184,7 @@ export default function FloatingLayer({
                   startH: size.h,
                 };
                 setResizingId(w.id);
+                onDragActive(true); // kills iframe hit-testing during resize
               }}
               title="Drag to resize"
               className={`absolute bottom-0.5 right-0.5 flex h-4 w-4 cursor-nwse-resize items-end justify-end p-0.5 ${

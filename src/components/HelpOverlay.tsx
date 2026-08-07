@@ -1,10 +1,11 @@
 import { X } from "lucide-react";
 
 const GESTURES: Array<[string, string]> = [
-  ["Drag window header", "move (grid tile or floating)"],
-  ["Drag window to a screen edge", "dock it — left / right / bottom"],
-  ["While dragging, pause on a window", "attach into its scroll stack (~0.4s)"],
-  ["Corner handle, drag", "resize (grid + floating)"],
+  ["arrange switch (m)", "unlock grid dragging/attaching — headers + canvas tint emerald while ON"],
+  ["Drag window header", "move (grid needs arrange ON; floating always moves)"],
+  ["Pause on a window while dragging", "attach into its scroll stack — violet highlight (~0.4s)"],
+  ["Drag to a screen edge", "dock it — left / right / bottom (emerald zones)"],
+  ["Corner handle, drag", "resize — always available, arrange ON or OFF"],
   ["Double-click window header", "zen focus (fills the canvas)"],
   ["Click a dock strip", "restore the window"],
   ["tabs | scroll toggle", "switch a multi-module window's view"],
@@ -28,6 +29,7 @@ const MENU_ACTIONS: Array<[string, string]> = [
 
 const SHORTCUTS: Array<[string, string]> = [
   ["1 / 2 / 3", "switch layout slot"],
+  ["m", "arrange mode on/off"],
   ["⌘K", "focus command input"],
   ["`", "layout inspector"],
   ["t", "light / dark theme"],

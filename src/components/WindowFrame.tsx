@@ -125,10 +125,10 @@ export default function WindowFrame({
       } ${fill ? "h-full flex-1" : ""}`}
       style={win.accent && isFocused ? { borderColor: `${win.accent}55` } : undefined}
     >
-      {/* ── Attach drop-target overlay ── */}
+      {/* ── Attach drop-target overlay (violet = merge; emerald = move/dock) ── */}
       {isDropTarget && (
-        <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center rounded-xl border-2 border-dashed border-emerald-400 bg-emerald-500/15">
-          <span className="rounded-md bg-emerald-500/90 px-2.5 py-1 font-mono text-[10.5px] font-semibold text-emerald-950">
+        <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center rounded-xl border-2 border-dashed border-violet-400 bg-violet-500/15">
+          <span className="rounded-md bg-violet-500/95 px-2.5 py-1 font-mono text-[10.5px] font-semibold text-violet-50">
             release to attach · scroll stack
           </span>
         </div>

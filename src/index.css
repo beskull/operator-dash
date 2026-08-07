@@ -206,10 +206,28 @@ code {
   text-orientation: mixed;
 }
 
-/* Kill iframe hit-testing while a panel drag is in progress, so the
-   pointer isn't swallowed mid-drag. */
+/* Kill ALL iframe hit-testing while any drag/resize is in progress —
+   embedded pages swallow pointer events otherwise and the drag breaks. */
 .ptr-off iframe {
+  pointer-events: none !important;
+}
+
+/* The grid item being dragged must not block hit-testing for attach
+   targets underneath it. */
+.react-grid-item.react-draggable-dragging {
   pointer-events: none;
+}
+
+/* ── Arrange mode ─────────────────────────────────────────────────────── */
+/* When ON, the whole canvas and every window header tint emerald —
+   a persistent signal that grid windows are movable/attachable. */
+.arrange-on .win-drag-handle {
+  background: rgba(52, 211, 153, 0.07);
+  box-shadow: inset 0 -1px 0 rgba(52, 211, 153, 0.18);
+}
+.light .arrange-on .win-drag-handle {
+  background: rgba(16, 185, 129, 0.09);
+  box-shadow: inset 0 -1px 0 rgba(16, 185, 129, 0.25);
 }
 
 /* ── react-grid-layout theme overrides ────────────────────────────────── */

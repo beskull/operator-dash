@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { useRef, useState } from "react";
+import { createPortal } from "react-dom";
 
 export type WindowMenuAction =
   | "flattenLeft"
@@ -32,8 +33,9 @@ interface WindowMenuProps {
   onAction: (a: WindowMenuAction) => void;
 }
 
-/** The ⋯ menu: every window action, labeled. Fixed-positioned to escape the
-    capsule's overflow-hidden clipping. */
+/** The ⋯ menu: every window action, labeled. Rendered in a portal — grid
+    tiles are CSS-transformed, which hijacks position:fixed and would clip
+    the menu inside the window capsule. */
 export default function WindowMenu({
   isFloating,
   isFocused,
@@ -80,38 +82,43 @@ export default function WindowMenu({
       >
         <MoreHorizontal size={12} />
       </button>
-      {pos && (
-        <>
-          <div className="fixed inset-0 z-[55]" onClick={() => setPos(null)} />
-          <div
-            className="anim-fade-in fixed z-[60] w-48 overflow-hidden rounded-lg border border-slate-700/80 bg-[#12151d]/98 py-1 shadow-2xl backdrop-blur light:border-slate-300 light:bg-white/98"
-            style={{ left: pos.x - 192, top: pos.y }}
-          >
-            {items
-              .filter((i) => !i.hidden)
-              .map(({ key, label, icon: Icon, danger }) => (
-                <button
-                  key={key}
-                  onClick={() => {
-                    setPos(null);
-                    onAction(key);
-                  }}
-                  className={`flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[11px] transition-colors ${
-                    danger
-                      ? "text-rose-400 hover:bg-rose-500/15"
-                      : "text-slate-300 hover:bg-slate-700/60 light:text-slate-700 light:hover:bg-slate-100"
-                  }`}
-                >
-                  <Icon size={12} className="shrink-0 opacity-70" />
-                  {label}
-                </button>
-              ))}
-            <div className="mt-1 border-t border-slate-700/60 px-2.5 py-1.5 font-mono text-[9px] leading-relaxed text-slate-600 light:border-slate-200 light:text-slate-400">
-              tip: drag the header to a screen edge to dock · double-click header for zen
+      {pos &&
+        createPortal(
+          <>
+            <div className="fixed inset-0 z-[55]" onClick={() => setPos(null)} />
+            <div
+              className="anim-fade-in fixed z-[60] w-48 overflow-hidden rounded-lg border border-slate-700/80 bg-[#12151d]/98 py-1 shadow-2xl backdrop-blur light:border-slate-300 light:bg-white/98"
+              style={{
+                left: Math.max(8, Math.min(pos.x - 192, window.innerWidth - 200)),
+                top: pos.y,
+              }}
+            >
+              {items
+                .filter((i) => !i.hidden)
+                .map(({ key, label, icon: Icon, danger }) => (
+                  <button
+                    key={key}
+                    onClick={() => {
+                      setPos(null);
+                      onAction(key);
+                    }}
+                    className={`flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[11px] transition-colors ${
+                      danger
+                        ? "text-rose-400 hover:bg-rose-500/15"
+                        : "text-slate-300 hover:bg-slate-700/60 light:text-slate-700 light:hover:bg-slate-100"
+                    }`}
+                  >
+                    <Icon size={12} className="shrink-0 opacity-70" />
+                    {label}
+                  </button>
+                ))}
+              <div className="mt-1 border-t border-slate-700/60 px-2.5 py-1.5 font-mono text-[9px] leading-relaxed text-slate-600 light:border-slate-200 light:text-slate-400">
+                tip: drag the header to a screen edge to dock · double-click header for zen
+              </div>
             </div>
-          </div>
-        </>
-      )}
+          </>,
+          document.body
+        )}
     </>
   );
 }

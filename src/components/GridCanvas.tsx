@@ -7,9 +7,11 @@ import WindowFrame from "./WindowFrame";
 const Grid = WidthProvider(GridLayout);
 
 interface GridCanvasProps {
-  /** Grid entries for the active mode (all windows; filtered internally). */
+  /** Grid entries for the active slot (all windows; filtered internally). */
   grid: GridPos[];
   windows: Record<string, WindowState>;
+  /** Arrange mode: grid dragging/attaching unlocked. Resize is always on. */
+  arrangeMode: boolean;
   onGridChange: (layout: GridPos[]) => void;
   onWindowUpdate: (id: string, updater: (w: WindowState) => WindowState) => void;
   onSetLiveUrl: (id: string, url: string, moduleId?: string) => void;
@@ -19,8 +21,12 @@ interface GridCanvasProps {
   onBringToFront: (id: string) => void;
   /** Edge-drop reporting: which screen edge the cursor is over (or null). */
   onEdgeHover: (edge: Edge | null) => void;
-  /** Drag started/ended — drives edge-zone visibility. */
+  /** Drag or resize started/ended — drives edge zones + the iframe guard. */
   onDragActive: (active: boolean) => void;
+  /** Live attach-target reporting while dragging (null when not armed). */
+  onHoverDropTarget: (id: string | null) => void;
+  /** Grid drag ended over an armed target — attach into its scroll stack. */
+  onAttachWindow: (sourceId: string, targetId: string) => void;
   dropTargetId: string | null;
   /** Another window is in zen mode — dim the grid behind the focus overlay. */
   dimmed?: boolean;
@@ -34,6 +40,7 @@ interface GridCanvasProps {
 export default function GridCanvas({
   grid,
   windows,
+  arrangeMode,
   onGridChange,
   onWindowUpdate,
   onSetLiveUrl,
@@ -42,23 +49,37 @@ export default function GridCanvas({
   onBringToFront,
   onEdgeHover,
   onDragActive,
+  onHoverDropTarget,
+  onAttachWindow,
   dropTargetId,
   dimmed,
 }: GridCanvasProps) {
-  // Shield iframes during grid drags so pointer events aren't swallowed.
   const [gridDragging, setGridDragging] = useState(false);
-  // Pre-drag rect, so an edge-drop can leave the grid entry untouched.
+  // Pre-drag rect, so an edge-drop or attach leaves the grid entry untouched.
   const dragOrigin = useRef<GridPos | null>(null);
+  // Attach dwell tracking — same rule as floating: pause ~0.4s to arm.
+  const hoverRef = useRef({ id: null as string | null, x: 0, y: 0, t: 0, still: 0 });
+  const armedRef = useRef<string | null>(null);
 
   const items = grid.filter((g) => {
     const w = windows[g.i];
     return w && w.layoutState === "normal";
   });
 
+  const clearDrag = () => {
+    setGridDragging(false);
+    onDragActive(false);
+    onEdgeHover(null);
+    armedRef.current = null;
+    hoverRef.current = { id: null, x: 0, y: 0, t: 0, still: 0 };
+    onHoverDropTarget(null);
+    dragOrigin.current = null;
+  };
+
   if (items.length === 0) {
     return (
       <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-slate-800 font-mono text-[11px] text-slate-600 light:border-slate-300 light:text-slate-400">
-        no windows on the grid — switch mode or restore from a dock
+        no windows on the grid — add one with "+ window", or restore from a dock
       </div>
     );
   }
@@ -77,6 +98,7 @@ export default function GridCanvas({
         compactType={null}
         preventCollision
         isBounded
+        isDraggable={arrangeMode}
         draggableHandle=".win-drag-handle"
         draggableCancel="button, input, a, select, textarea"
         onLayoutChange={(layout: Layout[]) => onGridChange(layout as GridPos[])}
@@ -85,33 +107,79 @@ export default function GridCanvas({
           onDragActive(true);
           dragOrigin.current = { i: oldItem.i, x: oldItem.x, y: oldItem.y, w: oldItem.w, h: oldItem.h };
         }}
-        onDrag={(_l, _old, _new, _ph, e) => {
+        onDrag={(_l, _old, item, _ph, e) => {
           const me = e as MouseEvent;
-          onEdgeHover(edgeFromPoint(me.clientX, me.clientY));
+
+          // Screen edges first: dock intent.
+          const edge = edgeFromPoint(me.clientX, me.clientY);
+          onEdgeHover(edge);
+          if (edge) {
+            if (armedRef.current) {
+              armedRef.current = null;
+              onHoverDropTarget(null);
+            }
+            hoverRef.current.still = 0;
+            return;
+          }
+
+          // Attach hit-test (the dragged tile is pointer-events-none via CSS,
+          // so elementFromPoint sees the windows underneath it).
+          const el = document.elementFromPoint(me.clientX, me.clientY);
+          const host = el instanceof Element ? el.closest("[data-window-id]") : null;
+          const hostId = host?.getAttribute("data-window-id") ?? null;
+          const next = hostId && hostId !== item.i ? hostId : null;
+
+          const h = hoverRef.current;
+          const now = performance.now();
+          if (next !== h.id) {
+            h.id = next;
+            h.still = 0;
+          }
+          const dt = now - h.t;
+          h.t = now;
+          const moved = Math.hypot(me.clientX - h.x, me.clientY - h.y);
+          h.x = me.clientX;
+          h.y = me.clientY;
+          h.still = moved < 6 ? h.still + dt : 0;
+
+          const armed = next !== null && h.still > 400;
+          const armedId = armed ? next : null;
+          if (armedId !== armedRef.current) {
+            armedRef.current = armedId;
+            onHoverDropTarget(armedId);
+          }
         }}
         onDragStop={(layout, _old, item, _ph, e) => {
-          setGridDragging(false);
-          onDragActive(false);
-          onEdgeHover(null);
           const me = e as MouseEvent;
           const edge = edgeFromPoint(me.clientX, me.clientY);
-          if (edge) {
-            // Dock to the edge; revert the grid rect to its pre-drag origin.
-            const origin = dragOrigin.current;
+          const attachTarget = armedRef.current;
+          const origin = dragOrigin.current;
+
+          if (edge || attachTarget) {
+            // Dock or attach: the tile leaves the grid — restore its rect so
+            // a later restore lands where it was, not where it was dragged.
             if (origin) {
               onGridChange(
                 (layout as GridPos[]).map((l) => (l.i === item.i ? { ...l, ...origin } : l))
               );
             }
-            onWindowUpdate(item.i, (w) => ({ ...w, layoutState: EDGE_TO_LAYOUT[edge] }));
+            if (edge) {
+              onWindowUpdate(item.i, (w) => ({ ...w, layoutState: EDGE_TO_LAYOUT[edge] }));
+            } else if (attachTarget) {
+              onAttachWindow(item.i, attachTarget);
+            }
           } else {
             onBringToFront(item.i);
           }
-          dragOrigin.current = null;
+          clearDrag();
         }}
-        onResizeStart={() => setGridDragging(true)}
+        onResizeStart={() => {
+          setGridDragging(true);
+          onDragActive(true);
+        }}
         onResizeStop={(_l, _old, item) => {
           setGridDragging(false);
+          onDragActive(false);
           onBringToFront(item.i);
         }}
       >
@@ -122,7 +190,7 @@ export default function GridCanvas({
               <WindowFrame
                 win={w}
                 fill
-                gridHandle
+                gridHandle={arrangeMode}
                 onUpdate={(updater) => onWindowUpdate(w.id, updater)}
                 onSetLiveUrl={(url, moduleId) => onSetLiveUrl(w.id, url, moduleId)}
                 onRemoveWindow={() => onRemoveWindow(w.id)}

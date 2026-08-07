@@ -63,14 +63,19 @@ Switching slots: windows in the slot's grid return to their saved rects/tabs; on
 
 | Gesture | Result |
 |---|---|
-| Drag window header | move (grid tile via RGL, or floating overlay) |
-| Drag window to a **screen edge** | dock to left / right / bottom — zones light up during any drag (no top edge on purpose) |
-| While dragging, **pause ~0.4s** on another window | arm attach → release merges into its scroll stack |
-| Drag corner handle | resize (grid SE handle / floating corner grip) |
+| **arrange switch (`m`)** | unlocks grid dragging + attach; canvas and window headers tint emerald while ON. Resize is always available, ON or OFF. |
+| Drag window header | move (grid tiles need arrange ON; floating windows always move) |
+| Drag window to a **screen edge** | dock to left / right / bottom — emerald zones light up during any drag (no top edge on purpose) |
+| While dragging, **pause ~0.4s** on another window | arm attach — **violet** highlight — release merges into its scroll stack (works from grid tiles AND floating windows) |
+| Drag corner handle | resize (grid SE handle / floating corner grip) — always on |
 | **Double-click header** | zen focus (fill canvas); again to exit |
 | Click dock strip | restore window to its grid rect |
-| `⋯` menu in header | every action, labeled: dock ×4, float/dock, zen, backdrop, flip, remove |
-| `1/2/3` `⌘K` `` ` `` `t` `?` `Esc` | modes · search · inspector · theme · help · exit zen |
+| `⋯` menu in header | every action, labeled: dock ×3, float/dock, zen, backdrop, flip, remove |
+| `1/2/3` `m` `⌘K` `` ` `` `t` `?` `Esc` | slots · arrange · search · inspector · theme · help · exit zen |
+
+Color language: **emerald = position** (move placeholder, dock zones), **violet = merge** (attach overlay).
+
+During any drag or resize, pointer events on all embedded iframes are disabled globally so live pages can't swallow the gesture.
 
 ## What's implemented
 
