@@ -1,0 +1,255 @@
+@import "tailwindcss";
+
+/* Light theme: toggled by adding .light to <html>. Dark is the default,
+   so components only need light: overrides where the dark value differs. */
+@custom-variant light (&:where(.light, .light *));
+
+/* ── Base ─────────────────────────────────────────────────────────────── */
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: #0b0d12;
+  color: #e2e8f0;
+  font-family:
+    "Inter",
+    -apple-system,
+    BlinkMacSystemFont,
+    "Segoe UI",
+    ui-sans-serif,
+    system-ui,
+    sans-serif;
+  font-feature-settings: "cv11", "ss01";
+  overflow: hidden;
+}
+
+.light body {
+  background: #eceff5;
+  color: #1e293b;
+}
+
+.font-mono,
+code {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+/* ── Scrollbars ───────────────────────────────────────────────────────── */
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-track {
+  background: transparent;
+}
+*::-webkit-scrollbar-thumb {
+  background: #2a3040;
+  border-radius: 8px;
+}
+*::-webkit-scrollbar-thumb:hover {
+  background: #3a4358;
+}
+.light *::-webkit-scrollbar-thumb {
+  background: #c3cbd9;
+}
+.light *::-webkit-scrollbar-thumb:hover {
+  background: #a8b3c7;
+}
+
+/* ── Window capsule styling ───────────────────────────────────────────── */
+.window-capsule {
+  background: linear-gradient(180deg, rgba(24, 27, 35, 0.92), rgba(15, 17, 23, 0.94));
+  border: 1px solid rgba(51, 58, 78, 0.7);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.03) inset,
+    0 12px 32px -12px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(8px);
+}
+
+.window-capsule.focused {
+  box-shadow:
+    0 0 0 1px rgba(52, 211, 153, 0.35),
+    0 0 42px -6px rgba(52, 211, 153, 0.18),
+    0 24px 48px -16px rgba(0, 0, 0, 0.7);
+}
+
+.light .window-capsule {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.97));
+  border: 1px solid rgba(203, 213, 225, 0.9);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.7) inset,
+    0 12px 32px -12px rgba(15, 23, 42, 0.18);
+  backdrop-filter: blur(8px);
+}
+
+/* ── Two-sided flip ───────────────────────────────────────────────────── */
+.flip-container {
+  perspective: 1400px;
+}
+.flip-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.5s cubic-bezier(0.32, 0.72, 0.24, 1);
+}
+.flip-inner.flipped {
+  transform: rotateY(180deg);
+}
+.flip-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  overflow: auto;
+}
+.flip-back {
+  transform: rotateY(180deg);
+}
+
+/* ── Animations ───────────────────────────────────────────────────────── */
+@keyframes window-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.965) translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+.anim-window-pop {
+  animation: window-pop 0.28s cubic-bezier(0.32, 0.72, 0.24, 1);
+}
+
+@keyframes dock-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes dock-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+@keyframes dock-in-top {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes dock-in-bottom {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.anim-dock-left {
+  animation: dock-in-left 0.24s ease-out;
+}
+.anim-dock-right {
+  animation: dock-in-right 0.24s ease-out;
+}
+.anim-dock-top {
+  animation: dock-in-top 0.24s ease-out;
+}
+.anim-dock-bottom {
+  animation: dock-in-bottom 0.24s ease-out;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+.anim-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+/* Flux canvas edge flow */
+@keyframes dash-flow {
+  to {
+    stroke-dashoffset: -24;
+  }
+}
+.flux-edge {
+  stroke-dasharray: 6 6;
+  animation: dash-flow 1.2s linear infinite;
+}
+
+/* Vertical dock strip text */
+.vertical-text {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+/* Kill iframe hit-testing while a panel drag is in progress, so the
+   pointer isn't swallowed mid-drag. */
+.ptr-off iframe {
+  pointer-events: none;
+}
+
+/* ── react-grid-layout theme overrides ────────────────────────────────── */
+.react-grid-item.react-grid-placeholder {
+  background: rgba(52, 211, 153, 0.18) !important;
+  border: 1px dashed rgba(52, 211, 153, 0.55);
+  border-radius: 12px;
+  opacity: 1;
+}
+.react-grid-item > .react-resizable-handle {
+  z-index: 30;
+}
+.react-grid-item > .react-resizable-handle::after {
+  border-color: #3a4358 !important;
+  width: 8px;
+  height: 8px;
+  border-right-width: 2px !important;
+  border-bottom-width: 2px !important;
+  border-radius: 1px;
+}
+.light .react-grid-item.react-grid-placeholder {
+  background: rgba(16, 185, 129, 0.12) !important;
+  border-color: rgba(5, 150, 105, 0.5);
+}
+.light .react-grid-item > .react-resizable-handle::after {
+  border-color: #94a3b8 !important;
+}
+
+/* Status pulse ring */
+@keyframes ping-soft {
+  0% {
+    transform: scale(1);
+    opacity: 0.7;
+  }
+  80%,
+  100% {
+    transform: scale(2.4);
+    opacity: 0;
+  }
+}
+.status-ping {
+  animation: ping-soft 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
