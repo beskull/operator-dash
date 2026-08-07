@@ -99,6 +99,10 @@ export default function App() {
     (windowId: string) => dispatch({ type: "bringToFront", windowId }),
     []
   );
+  const toggleExpand = useCallback(
+    (windowId: string) => dispatch({ type: "toggleExpand", windowId }),
+    []
+  );
 
   // ── Derived layout ──
   const windows = useMemo(() => Object.values(workspace.windows), [workspace.windows]);
@@ -131,20 +135,22 @@ export default function App() {
         dragActive ? "ptr-off" : ""
       } ${minimalHeaders ? "minimal-headers" : ""}`}
     >
-      <AppShell
-        ref={searchRef}
-        boards={state.boards}
-        activeBoardId={board.id}
-        activeWorkspaceId={workspace.id}
-        isLight={theme === "light"}
-        onToggleTheme={() => setTheme((t) => (t === "light" ? "dark" : "light"))}
-        onSelectBoard={(boardId) => dispatch({ type: "selectBoard", boardId })}
-        onSelectWorkspace={(workspaceId) => dispatch({ type: "selectWorkspace", workspaceId })}
-        onAddBoard={addBoard}
-        onAddWorkspace={addWorkspace}
-        boardsFull={state.boards.length >= MAX_BOARDS}
-        workspacesFull={board.workspaces.length >= MAX_WORKSPACES}
-      />
+      {!minimalHeaders && (
+        <AppShell
+          ref={searchRef}
+          boards={state.boards}
+          activeBoardId={board.id}
+          activeWorkspaceId={workspace.id}
+          isLight={theme === "light"}
+          onToggleTheme={() => setTheme((t) => (t === "light" ? "dark" : "light"))}
+          onSelectBoard={(boardId) => dispatch({ type: "selectBoard", boardId })}
+          onSelectWorkspace={(workspaceId) => dispatch({ type: "selectWorkspace", workspaceId })}
+          onAddBoard={addBoard}
+          onAddWorkspace={addWorkspace}
+          boardsFull={state.boards.length >= MAX_BOARDS}
+          workspacesFull={board.workspaces.length >= MAX_WORKSPACES}
+        />
+      )}
 
       {/* ── Workspace canvas ── */}
       <div className="relative min-h-0 flex-1">
@@ -170,23 +176,25 @@ export default function App() {
         />
 
         <div className="relative z-10 flex h-full flex-col">
-          <ControlPanel
-            slots={workspace.slots}
-            activeSlot={workspace.activeSlot}
-            onSlotChange={setSlot}
-            onRenameSlot={renameSlot}
-            arrangeMode={arrangeMode}
-            onToggleArrange={() => setArrangeMode((v) => !v)}
-            minimalHeaders={minimalHeaders}
-            onToggleMinimalHeaders={() => setMinimalHeaders((v) => !v)}
-            bgIntensity={bgIntensity}
-            onBgIntensity={setBgIntensity}
-            inspectorOpen={inspectorOpen}
-            onToggleInspector={() => setInspectorOpen((v) => !v)}
-            onToggleHelp={() => setHelpOpen(true)}
-            windowCount={windows.length}
-            onAddWindow={addWindow}
-          />
+          {!minimalHeaders && (
+            <ControlPanel
+              slots={workspace.slots}
+              activeSlot={workspace.activeSlot}
+              onSlotChange={setSlot}
+              onRenameSlot={renameSlot}
+              arrangeMode={arrangeMode}
+              onToggleArrange={() => setArrangeMode((v) => !v)}
+              minimalHeaders={minimalHeaders}
+              onToggleMinimalHeaders={() => setMinimalHeaders((v) => !v)}
+              bgIntensity={bgIntensity}
+              onBgIntensity={setBgIntensity}
+              inspectorOpen={inspectorOpen}
+              onToggleInspector={() => setInspectorOpen((v) => !v)}
+              onToggleHelp={() => setHelpOpen(true)}
+              windowCount={windows.length}
+              onAddWindow={addWindow}
+            />
+          )}
 
           <div className="flex min-h-0 flex-1 gap-2 px-3 pb-1">
             {/* Left edge: flatten dock */}
@@ -208,6 +216,7 @@ export default function App() {
                 onDragActive={setDragActive}
                 onHoverDropTarget={setDropTargetId}
                 onAttachWindow={attachWindow}
+                onToggleExpand={toggleExpand}
                 dropTargetId={dropTargetId}
                 dimmed={Boolean(focused)}
               />
@@ -256,6 +265,17 @@ export default function App() {
 
         {/* Edge dock zones, visible during any window drag */}
         <EdgeZones visible={dragActive} active={activeEdge} />
+
+        {/* Work-mode restore pill — the only visible chrome when everything's hidden */}
+        {minimalHeaders && (
+          <button
+            onClick={() => setMinimalHeaders(false)}
+            title="Exit work mode (h)"
+            className="anim-fade-in fixed right-3 top-2 z-50 flex items-center gap-1.5 rounded-full border border-slate-700/70 bg-slate-900/85 px-2.5 py-1 font-mono text-[9.5px] text-slate-400 opacity-50 backdrop-blur transition-opacity hover:opacity-100 light:border-slate-300 light:bg-white/85 light:text-slate-500"
+          >
+            work mode · h
+          </button>
+        )}
 
         {inspectorOpen && (
           <DebugInspector

@@ -7,13 +7,19 @@
 //                                      when the page repaints (+ meta msgs)
 //   POST /api/input {session,type,x|y|deltaY|key} → click/scroll/key forward
 //
-// Each session = an isolated headless Chromium context (its own cookie jar,
-// so logins inside a remote window persist while this process runs).
+// All sessions share ONE persistent Chromium profile (server/.chrome-profile):
+// one cookie jar across every remote window, preserved on disk across restarts.
+// Log in once (or via `npm run remote:login` for a headed window) and every
+// remote window is authenticated.
 
 import express from "express";
 import { createServer } from "node:http";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { WebSocketServer } from "ws";
+
+const PROFILE_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), ".chrome-profile");
 
 const PORT = 5198;
 const IDLE_TIMEOUT_MS = 5 * 60_000;
@@ -91,8 +97,14 @@ app.get("/api/check", async (req, res) => {
 
 // ── Browser sessions ────────────────────────────────────────────────────────
 
-let browserPromise = null;
-const getBrowser = () => (browserPromise ??= chromium.launch({ headless: true }));
+// Single persistent context = shared cookie jar. No UA override: the real
+// bundled-Chrome identity passes more auth checks than a spoofed string.
+let contextPromise = null;
+const getContext = () =>
+  (contextPromise ??= chromium.launchPersistentContext(PROFILE_DIR, {
+    headless: process.env.REMOTE_HEADLESS !== "0",
+    viewport: { width: 1280, height: 800 },
+  }));
 
 const sessions = new Map(); // id → { page, lastUsed, cdp? }
 const pending = new Map(); // id → Promise<page>
@@ -110,9 +122,9 @@ async function getPage(id, url, w, h) {
   if (pending.has(id)) return pending.get(id);
 
   const p = (async () => {
-    const browser = await getBrowser();
-    const context = await browser.newContext({ viewport: { width: w, height: h }, userAgent: UA });
+    const context = await getContext();
     const page = await context.newPage();
+    await page.setViewportSize({ width: w, height: h });
     await page.goto(url, { waitUntil: "domcontentloaded", timeout: 20000 });
     sessions.set(id, { page, lastUsed: Date.now() });
     pending.delete(id);
@@ -132,10 +144,7 @@ setInterval(() => {
   for (const [id, s] of sessions) {
     if (now - s.lastUsed > IDLE_TIMEOUT_MS) {
       sessions.delete(id);
-      s.page
-        .context()
-        .close()
-        .catch(() => {});
+      s.page.close().catch(() => {}); // page only — the shared profile stays open
     }
   }
 }, 60_000);

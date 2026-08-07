@@ -27,6 +27,8 @@ interface GridCanvasProps {
   onHoverDropTarget: (id: string | null) => void;
   /** Grid drag ended over an armed target — attach into its scroll stack. */
   onAttachWindow: (sourceId: string, targetId: string) => void;
+  /** Expand taller (push-down) / restore — works with arrange off. */
+  onToggleExpand: (id: string) => void;
   dropTargetId: string | null;
   /** Another window is in zen mode — dim the grid behind the focus overlay. */
   dimmed?: boolean;
@@ -51,6 +53,7 @@ export default function GridCanvas({
   onDragActive,
   onHoverDropTarget,
   onAttachWindow,
+  onToggleExpand,
   dropTargetId,
   dimmed,
 }: GridCanvasProps) {
@@ -196,6 +199,8 @@ export default function GridCanvas({
                 onRemoveWindow={() => onRemoveWindow(w.id)}
                 onDetachModule={(moduleId) => onDetachModule(w.id, moduleId)}
                 isDropTarget={dropTargetId === w.id}
+                onToggleExpand={() => onToggleExpand(w.id)}
+                isExpanded={g.prevH != null}
               />
             </div>
           );

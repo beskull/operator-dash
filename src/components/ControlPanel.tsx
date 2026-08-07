@@ -213,7 +213,7 @@ export default function ControlPanel({
       <div className="ml-auto flex items-center gap-3">
         <button
           onClick={onToggleMinimalHeaders}
-          title="Minimal window headers (h): chrome collapses to a slim strip, controls appear on hover"
+          title="Work mode (h): hide board/workspace/slot chrome and slim the window headers — everything but your windows goes away"
           className={`flex items-center gap-1.5 rounded-md border px-2 py-1 text-[10.5px] transition-colors ${
             minimalHeaders
               ? "border-cyan-500/50 bg-cyan-500/10 text-cyan-300 light:text-cyan-700"
@@ -221,7 +221,7 @@ export default function ControlPanel({
           }`}
         >
           <Minus size={11} />
-          minimal
+          work mode
         </button>
         <span className="font-mono text-[10px] text-slate-600 light:text-slate-400">
           {windowCount} windows

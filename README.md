@@ -56,8 +56,9 @@ Switching slots: windows in the slot's grid return to their saved rects/tabs; on
 ## Live iframe persistence
 
 - **Sub-page tracking (same-origin only):** when an embedded app is same-origin with the dashboard (e.g. your localhost dev servers), the frame's current URL is polled (2s) and written to localStorage *without* remounting the iframe — so a reload restores the sub-page you were on. Cross-origin frames can't be read (browser security); those restore to the URL you set.
-- **Cookies/logins:** embedded sites use their own cookies as normal — but cross-origin iframes are *third-party* cookie contexts, which Safari (ITP) and Chrome increasingly restrict. Logins persist best when the app is same-origin, or same parent domain (e.g. dashboard on `ops.yourdomain.com`, apps on `app.yourdomain.com`).
-- **Embed blocking:** sites sending `X-Frame-Options` / CSP `frame-ancestors` refuse to embed anywhere (google/cnn/espn…). Their policy, not this app.
+- **Cookies/logins (remote windows):** the renderer uses ONE persistent Chromium profile (`server/.chrome-profile`, gitignored) shared by every remote window — log in once and all remote windows are authenticated; credentials survive renderer restarts. For sign-in flows that block headless browsers (Google sometimes does), run `npm run remote:login` once: a visible browser opens on the same profile — sign in there, close it, done. The renderer never touches your daily-driver Chrome profile (Chrome refuses profile sharing while running, and that's your real life in there).
+- **Cookies in plain iframes:** embedded sites use their own cookies — but cross-origin iframes are *third-party* cookie contexts, which Safari/Chrome increasingly restrict. Best when the app is same-origin or same parent domain.
+- **Embed blocking:** sites sending `X-Frame-Options` / CSP `frame-ancestors` refuse to embed anywhere (google/cnn/espn…). Their policy, not this app — those go through the remote renderer.
 
 ## Interaction model (press `?` in-app for the cheat sheet)
 
@@ -69,7 +70,8 @@ Switching slots: windows in the slot's grid return to their saved rects/tabs; on
 | While dragging, **pause ~0.4s** on another window | arm attach — **violet** highlight — release merges its modules in as **tabs** (never forced into scroll; toggle to `scroll` if you want the stack) |
 | Drag corner handle | resize (grid SE handle / floating corner grip) — always on |
 | **Double-click header** | zen focus (fill canvas); again to exit |
-| **minimal headers (`h`)** | window chrome collapses to a slim strip; controls fade in on header hover |
+| **Expand icon / ⋯ menu** | grow the tile taller, pushing windows below down (cascades) — a discrete action, so it works with arrange OFF; again to restore height |
+| **work mode (`h`)** | hides ALL global chrome (boards, workspaces, slots, control bar) and slims window headers — restore via the floating pill or `h` |
 | Hover a tab → **pop-out icon** | detach that module into its own floating window (also: ⋯ menu → "Pop out current tab"; scroll view has per-section detach buttons) |
 | Click dock strip | restore window to its grid rect |
 | `⋯` menu in header | every action, labeled: dock ×3, float/dock, zen, backdrop, pop out, flip, remove |

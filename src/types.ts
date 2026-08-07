@@ -81,8 +81,10 @@ export interface GridPos {
   y: number;
   w: number;
   h: number;
-  /** Module tab to activate when the mode engages. */
+  /** Module tab to activate when the slot engages. */
   tab?: string;
+  /** Pre-expand height, set while a window is expanded (toggle restore). */
+  prevH?: number;
 }
 
 export interface WorkspaceState {

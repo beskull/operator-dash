@@ -15,6 +15,7 @@ export type DashboardAction =
   | { type: "renameSlot"; slot: number; name: string }
   | { type: "setGrid"; layout: GridPos[] }
   | { type: "bringToFront"; windowId: string }
+  | { type: "toggleExpand"; windowId: string }
   | { type: "updateWindow"; windowId: string; updater: (w: WindowState) => WindowState }
   | { type: "addBoard"; name: string }
   | { type: "addWorkspace"; name: string }
@@ -144,6 +145,53 @@ export function dashboardReducer(state: DashboardState, action: DashboardAction)
               ? { ...s, grid: [...layout.filter((g) => g.i !== action.windowId), entry] }
               : s
           ),
+        };
+      });
+    case "toggleExpand":
+      // Grow a tile (+8 rows), pushing anything below it down — or restore.
+      // Works with arrange mode OFF: it's a discrete action, not a drag.
+      return updateActiveWorkspace(state, (ws) => {
+        const slot = ws.slots[ws.activeSlot];
+        if (!slot) return ws;
+        const entry = slot.grid.find((g) => g.i === action.windowId);
+        if (!entry) return ws;
+
+        let grid: GridPos[];
+        if (entry.prevH != null) {
+          // Restore pre-expand height; nothing is pulled back up.
+          grid = slot.grid.map((g) => {
+            if (g.i !== entry.i) return g;
+            const { prevH: _drop, ...rest } = g;
+            return { ...rest, h: g.prevH ?? g.h };
+          });
+        } else {
+          grid = slot.grid.map((g) => ({ ...g }));
+          const mine = grid.find((g) => g.i === entry.i)!;
+          mine.prevH = mine.h;
+          mine.h += 8;
+
+          // Cascade: push down only windows overlapped by something that
+          // already moved. Pre-existing overlaps elsewhere stay untouched.
+          const moved = new Set<string>([mine.i]);
+          const queue = [mine.i];
+          while (queue.length) {
+            const upperId = queue.shift()!;
+            const upper = grid.find((g) => g.i === upperId)!;
+            for (const other of grid) {
+              if (moved.has(other.i)) continue;
+              const overlapX = upper.x < other.x + other.w && other.x < upper.x + upper.w;
+              const overlapY = upper.y < other.y + other.h && other.y < upper.y + upper.h;
+              if (overlapX && overlapY) {
+                other.y = upper.y + upper.h; // push below the expanded/pushed window
+                moved.add(other.i);
+                queue.push(other.i);
+              }
+            }
+          }
+        }
+        return {
+          ...ws,
+          slots: ws.slots.map((s, i) => (i === ws.activeSlot ? { ...s, grid } : s)),
         };
       });
     case "updateWindow":

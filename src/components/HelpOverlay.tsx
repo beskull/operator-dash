@@ -7,7 +7,8 @@ const GESTURES: Array<[string, string]> = [
   ["Drag to a screen edge", "dock it — left / right / bottom (emerald zones)"],
   ["Corner handle, drag", "resize — always available, arrange ON or OFF"],
   ["Double-click window header", "zen focus (fills the canvas)"],
-  ["minimal headers (h)", "window chrome collapses to a slim strip; controls appear on hover"],
+  ["Expand icon (grid windows)", "grow taller, pushing windows below down — works with arrange OFF; click again to restore"],
+  ["work mode (h)", "hides ALL top chrome (boards · workspaces · slots · control bar) + slims window headers"],
   ["Hover a tab → pop-out icon", "detach that module into its own floating window"],
   ["Click a dock strip", "restore the window"],
   ["tabs | scroll toggle", "switch a multi-module window's view"],
@@ -32,7 +33,7 @@ const MENU_ACTIONS: Array<[string, string]> = [
 const SHORTCUTS: Array<[string, string]> = [
   ["1 / 2 / 3", "switch layout slot"],
   ["m", "arrange mode on/off (default off)"],
-  ["h", "minimal headers on/off"],
+  ["h", "work mode on/off — hide all top chrome"],
   ["⌘K", "focus command input"],
   ["`", "layout inspector"],
   ["t", "light / dark theme"],

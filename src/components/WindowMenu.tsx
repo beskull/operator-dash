@@ -1,6 +1,7 @@
 import {
   ArrowDownToLine,
   ArrowUpFromLine,
+  ChevronsUpDown,
   Crosshair,
   FlipHorizontal2,
   Layers,
@@ -24,6 +25,7 @@ export type WindowMenuAction =
   | "backdrop"
   | "flip"
   | "popOut"
+  | "expand"
   | "remove";
 
 interface WindowMenuProps {
@@ -33,6 +35,9 @@ interface WindowMenuProps {
   removable: boolean;
   /** Window has multiple modules — the active one can be popped out. */
   canPopOut: boolean;
+  /** Grid window — can expand taller / restore. */
+  canExpand: boolean;
+  isExpanded: boolean;
   onAction: (a: WindowMenuAction) => void;
 }
 
@@ -45,6 +50,8 @@ export default function WindowMenu({
   isTwoSided,
   removable,
   canPopOut,
+  canExpand,
+  isExpanded,
   onAction,
 }: WindowMenuProps) {
   const btnRef = useRef<HTMLButtonElement>(null);
@@ -72,6 +79,12 @@ export default function WindowMenu({
       ? { key: "focus", label: "Exit zen focus", icon: Minimize2 }
       : { key: "focus", label: "Zen focus", icon: Crosshair },
     { key: "backdrop", label: "Send to background", icon: Layers },
+    {
+      key: "expand",
+      label: isExpanded ? "Restore size" : "Expand (pushes below down)",
+      icon: ChevronsUpDown,
+      hidden: !canExpand,
+    },
     { key: "popOut", label: "Pop out current tab", icon: PictureInPicture2, hidden: !canPopOut },
     { key: "flip", label: "Flip side", icon: FlipHorizontal2, hidden: !isTwoSided },
     { key: "remove", label: "Remove window", icon: X, danger: true, hidden: !removable },
