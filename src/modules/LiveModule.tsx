@@ -2,6 +2,9 @@ import { ExternalLink, Globe, Pencil, RotateCw, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { trackLiveUrl } from "../state/liveWindows";
 import type { ModuleDef } from "../types";
+import RemoteView from "./RemoteView";
+
+const REMOTE = "http://localhost:5198";
 
 interface LiveModuleProps {
   module: ModuleDef;
@@ -18,13 +21,32 @@ export default function LiveModule({ module, winId, onSetUrl, onRemove }: LiveMo
   const [editing, setEditing] = useState(!module.url);
   const [draft, setDraft] = useState(module.url ?? "");
   const [reloadKey, setReloadKey] = useState(0);
+  const [embedMode, setEmbedMode] = useState<"checking" | "iframe" | "remote">("checking");
   const frameRef = useRef<HTMLIFrameElement>(null);
   const lastTracked = useRef<string | null>(null);
+
+  // Probe the URL's framing policy: clean sites stay plain iframes; blocked
+  // sites route to the local Playwright renderer. If the renderer isn't
+  // running, fall back to the iframe (previous behavior).
+  useEffect(() => {
+    if (!module.url) return;
+    let dead = false;
+    setEmbedMode("checking");
+    fetch(
+      `${REMOTE}/api/check?url=${encodeURIComponent(module.url)}&origin=${encodeURIComponent(location.origin)}`
+    )
+      .then((r) => r.json())
+      .then((j) => !dead && setEmbedMode(j.embeddable ? "iframe" : "remote"))
+      .catch(() => !dead && setEmbedMode("iframe"));
+    return () => {
+      dead = true;
+    };
+  }, [module.url, reloadKey]);
 
   // Same-origin frames only: remember which sub-page the user navigates to,
   // so a reload restores it. Cross-origin access throws — skipped silently.
   useEffect(() => {
-    if (!module.url || !winId) return;
+    if (!module.url || !winId || embedMode !== "iframe") return;
     lastTracked.current = module.url;
     const t = setInterval(() => {
       try {
@@ -38,7 +60,7 @@ export default function LiveModule({ module, winId, onSetUrl, onRemove }: LiveMo
       }
     }, 2000);
     return () => clearInterval(t);
-  }, [module.url, module.id, winId]);
+  }, [module.url, module.id, winId, embedMode]);
 
   const save = () => {
     const url = draft.trim();
@@ -127,14 +149,28 @@ export default function LiveModule({ module, winId, onSetUrl, onRemove }: LiveMo
 
       {/* Frame */}
       {module.url ? (
-        <iframe
-          ref={frameRef}
-          key={`${module.url}-${reloadKey}`}
-          src={module.url}
-          title={module.title}
-          className="min-h-0 w-full flex-1 bg-white"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
-        />
+        embedMode === "remote" ? (
+          <RemoteView
+            key={`${module.url}-${reloadKey}`}
+            url={module.url}
+            winId={winId}
+            moduleId={module.id}
+            sessionSeed={reloadKey}
+          />
+        ) : embedMode === "checking" ? (
+          <div className="flex flex-1 items-center justify-center font-mono text-[10.5px] text-slate-500">
+            <span className="animate-pulse">checking embed policy…</span>
+          </div>
+        ) : (
+          <iframe
+            ref={frameRef}
+            key={`${module.url}-${reloadKey}`}
+            src={module.url}
+            title={module.title}
+            className="min-h-0 w-full flex-1 bg-white"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups"
+          />
+        )
       ) : (
         <div className="flex flex-1 items-center justify-center p-6 text-center font-mono text-[10.5px] leading-relaxed text-slate-600 light:text-slate-400">
           <div className="max-w-[260px] space-y-2">
