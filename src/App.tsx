@@ -99,8 +99,9 @@ export default function App() {
     (windowId: string) => dispatch({ type: "bringToFront", windowId }),
     []
   );
-  const toggleExpand = useCallback(
-    (windowId: string) => dispatch({ type: "toggleExpand", windowId }),
+  const resizePush = useCallback(
+    (windowId: string, rect: { x: number; y: number; w: number; h: number }, axis: "h" | "v") =>
+      dispatch({ type: "resizePush", windowId, rect, axis }),
     []
   );
 
@@ -162,7 +163,7 @@ export default function App() {
             arrangeMode ? "opacity-100" : "opacity-0"
           }`}
         >
-          <div className="absolute inset-0 bg-emerald-500/[0.05] light:bg-emerald-500/[0.07]" />
+          <div className="absolute inset-0 bg-emerald-500/[0.11] light:bg-emerald-500/[0.13]" />
         </div>
 
         {/* Backdrop windows live behind the grid */}
@@ -216,7 +217,7 @@ export default function App() {
                 onDragActive={setDragActive}
                 onHoverDropTarget={setDropTargetId}
                 onAttachWindow={attachWindow}
-                onToggleExpand={toggleExpand}
+                onResizePush={resizePush}
                 dropTargetId={dropTargetId}
                 dimmed={Boolean(focused)}
               />

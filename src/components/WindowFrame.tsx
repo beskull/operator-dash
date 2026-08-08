@@ -1,7 +1,6 @@
 import {
   ArrowDownToLine,
   ArrowUpFromLine,
-  ChevronsUpDown,
   Crosshair,
   FlipHorizontal2,
   Link2,
@@ -36,9 +35,6 @@ interface WindowFrameProps {
   isDropTarget?: boolean;
   /** Rendered inside the react-grid-layout grid — header becomes the RGL drag handle. */
   gridHandle?: boolean;
-  /** Grid windows only: expand taller (pushing windows below down) / restore. */
-  onToggleExpand?: () => void;
-  isExpanded?: boolean;
 }
 
 export default function WindowFrame({
@@ -51,8 +47,6 @@ export default function WindowFrame({
   onDetachModule,
   isDropTarget,
   gridHandle,
-  onToggleExpand,
-  isExpanded,
 }: WindowFrameProps) {
   const { layoutState, modules, activeModuleId, twoSided, viewMode } = win;
   const activeModule = modules.find((m) => m.id === activeModuleId) ?? modules[0];
@@ -110,9 +104,6 @@ export default function WindowFrame({
         break;
       case "backdrop":
         setLayout("backdrop");
-        break;
-      case "expand":
-        onToggleExpand?.();
         break;
       case "flip":
         flip();
@@ -225,27 +216,12 @@ export default function WindowFrame({
               >
                 {isFocused ? <Minimize2 size={12} /> : <Crosshair size={12} />}
               </button>
-              {onToggleExpand && (
-                <button
-                  title={
-                    isExpanded
-                      ? "Restore size"
-                      : "Expand — pushes windows below down (works with arrange off)"
-                  }
-                  onClick={onToggleExpand}
-                  className={`${iconBtn} ${isExpanded ? "text-emerald-400 light:text-emerald-600" : ""}`}
-                >
-                  <ChevronsUpDown size={12} />
-                </button>
-              )}
               <WindowMenu
                 isFloating={isFloating}
                 isFocused={isFocused}
                 isTwoSided={Boolean(twoSided?.isTwoSided)}
                 removable={Boolean(removable)}
                 canPopOut={modules.length > 1}
-                canExpand={Boolean(onToggleExpand)}
-                isExpanded={Boolean(isExpanded)}
                 onAction={handleMenuAction}
               />
             </>

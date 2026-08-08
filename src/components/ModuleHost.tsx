@@ -27,9 +27,17 @@ export default function ModuleHost({
   onRemoveWindow?: () => void;
 }) {
   // Any module with a URL linked renders live; unlinking reverts to its mock.
+  // Keyed by module id: tab switches between two live modules must NOT reuse
+  // the component instance, or the URL chrome's edit/draft state leaks across.
   if (module.url || module.type === "live") {
     return (
-      <LiveModule module={module} winId={winId} onSetUrl={onSetLiveUrl} onRemove={onRemoveWindow} />
+      <LiveModule
+        key={module.id}
+        module={module}
+        winId={winId}
+        onSetUrl={onSetLiveUrl}
+        onRemove={onRemoveWindow}
+      />
     );
   }
   switch (module.type) {

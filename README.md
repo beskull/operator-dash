@@ -23,6 +23,8 @@ npm run build      # typecheck + production build
 
 If the renderer isn't running, everything silently falls back to plain iframes. Verified: google.com and cnn.com (both frame-blocked) render and accept input. Security note: no auth, binds 127.0.0.1 — dev tool only.
 
+**Bot checks (Cloudflare etc.):** the renderer launches your installed Google Chrome (falls back to bundled Chromium), strips the automation blink flag, and hides `navigator.webdriver` — that clears most "verify you are human" loops, especially once you've clicked the checkbox once (clearance persists in the shared profile). If a site still loops, run `npm run remote:login` and pass the check in the visible window once.
+
 ## Concepts
 
 | Primitive | Meaning |
@@ -70,7 +72,7 @@ Switching slots: windows in the slot's grid return to their saved rects/tabs; on
 | While dragging, **pause ~0.4s** on another window | arm attach — **violet** highlight — release merges its modules in as **tabs** (never forced into scroll; toggle to `scroll` if you want the stack) |
 | Drag corner handle | resize (grid SE handle / floating corner grip) — always on |
 | **Double-click header** | zen focus (fill canvas); again to exit |
-| **Expand icon / ⋯ menu** | grow the tile taller, pushing windows below down (cascades) — a discrete action, so it works with arrange OFF; again to restore height |
+| **Resize past a neighbor** | the resize drag IS the expand: vertical growth pushes windows below down; horizontal growth shifts right-side neighbors right, wrapping to a new line when columns run out — works with arrange ON or OFF |
 | **work mode (`h`)** | hides ALL global chrome (boards, workspaces, slots, control bar) and slims window headers — restore via the floating pill or `h` |
 | Hover a tab → **pop-out icon** | detach that module into its own floating window (also: ⋯ menu → "Pop out current tab"; scroll view has per-section detach buttons) |
 | Click dock strip | restore window to its grid rect |

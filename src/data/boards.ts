@@ -36,17 +36,22 @@ const win = (w: Partial<WindowState> & Pick<WindowState, "id" | "title" | "modul
 const collect = (wins: WindowState[]): Record<string, WindowState> =>
   Object.fromEntries(wins.map((w) => [w.id, w]));
 
-/** Apply persisted URL state: bindings onto factory windows + user's live windows. */
+/** Apply persisted URL state: bindings onto factory windows + user's live windows.
+    Bindings carry full module defs, so live tabs ATTACHED into factory windows
+    reappear after reload (their dynamic ids don't exist in the factories). */
 const withLive = (ws: WorkspaceState): WorkspaceState => {
   const overlay = loadOverlay(ws.id);
   const windows = { ...ws.windows };
   for (const [winId, mods] of Object.entries(overlay.bindings)) {
     const w = windows[winId];
     if (!w) continue;
-    windows[winId] = {
-      ...w,
-      modules: w.modules.map((m) => (mods[m.id] ? { ...m, url: mods[m.id] } : m)),
-    };
+    let modules = w.modules.map((m) => (mods[m.id]?.url ? { ...m, url: mods[m.id].url } : m));
+    for (const [modId, def] of Object.entries(mods)) {
+      if (def?.url && !modules.some((m) => m.id === modId)) {
+        modules = [...modules, def];
+      }
+    }
+    windows[winId] = { ...w, modules };
   }
   return { ...ws, windows: { ...windows, ...collect(overlay.live) } };
 };

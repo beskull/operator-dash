@@ -97,14 +97,34 @@ app.get("/api/check", async (req, res) => {
 
 // ── Browser sessions ────────────────────────────────────────────────────────
 
-// Single persistent context = shared cookie jar. No UA override: the real
-// bundled-Chrome identity passes more auth checks than a spoofed string.
+// Single persistent context = shared cookie jar. Anti-detection basics so
+// Cloudflare & co. don't loop their "verify you are human" challenge:
+// real Chrome when installed, automation flag stripped, webdriver hidden.
 let contextPromise = null;
 const getContext = () =>
-  (contextPromise ??= chromium.launchPersistentContext(PROFILE_DIR, {
-    headless: process.env.REMOTE_HEADLESS !== "0",
-    viewport: { width: 1280, height: 800 },
-  }));
+  (contextPromise ??= (async () => {
+    const base = {
+      headless: process.env.REMOTE_HEADLESS !== "0",
+      viewport: { width: 1280, height: 800 },
+      args: ["--disable-blink-features=AutomationControlled"],
+    };
+    let context;
+    try {
+      // Real Google Chrome is far less fingerprinted than Chrome-for-Testing.
+      context = await chromium.launchPersistentContext(PROFILE_DIR, { ...base, channel: "chrome" });
+      console.log("[remote] using installed Google Chrome");
+    } catch {
+      context = await chromium.launchPersistentContext(PROFILE_DIR, base);
+      console.log("[remote] using bundled Chromium (install Chrome for better bot-check pass rates)");
+    }
+    await context.addInitScript(() => {
+      Object.defineProperty(navigator, "webdriver", { get: () => undefined });
+      Object.defineProperty(navigator, "languages", { get: () => ["en-US", "en"] });
+      // @ts-ignore — present in real Chrome, absent in automation builds
+      window.chrome = window.chrome || { runtime: {} };
+    });
+    return context;
+  })());
 
 const sessions = new Map(); // id → { page, lastUsed, cdp? }
 const pending = new Map(); // id → Promise<page>

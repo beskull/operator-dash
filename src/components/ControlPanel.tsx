@@ -82,6 +82,7 @@ export default function ControlPanel({
     onAddWindow("live", url);
     setDraft("");
     setUrlMode(false);
+    setAddOpen(false);
   };
 
   return (

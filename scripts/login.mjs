@@ -8,10 +8,17 @@ import { chromium } from "playwright";
 
 const profileDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "../server/.chrome-profile");
 
-const ctx = await chromium.launchPersistentContext(profileDir, {
+const base = {
   headless: false,
   viewport: { width: 1200, height: 850 },
-});
+  args: ["--disable-blink-features=AutomationControlled"],
+};
+let ctx;
+try {
+  ctx = await chromium.launchPersistentContext(profileDir, { ...base, channel: "chrome" });
+} catch {
+  ctx = await chromium.launchPersistentContext(profileDir, base);
+}
 
 const page = ctx.pages()[0] ?? (await ctx.newPage());
 await page.goto("https://accounts.google.com/");

@@ -27,8 +27,12 @@ interface GridCanvasProps {
   onHoverDropTarget: (id: string | null) => void;
   /** Grid drag ended over an armed target — attach into its scroll stack. */
   onAttachWindow: (sourceId: string, targetId: string) => void;
-  /** Expand taller (push-down) / restore — works with arrange off. */
-  onToggleExpand: (id: string) => void;
+  /** Resize ended — cascade overlapped windows (down, or right/wrap). */
+  onResizePush: (
+    id: string,
+    rect: { x: number; y: number; w: number; h: number },
+    axis: "h" | "v"
+  ) => void;
   dropTargetId: string | null;
   /** Another window is in zen mode — dim the grid behind the focus overlay. */
   dimmed?: boolean;
@@ -53,7 +57,7 @@ export default function GridCanvas({
   onDragActive,
   onHoverDropTarget,
   onAttachWindow,
-  onToggleExpand,
+  onResizePush,
   dropTargetId,
   dimmed,
 }: GridCanvasProps) {
@@ -63,6 +67,9 @@ export default function GridCanvas({
   // Attach dwell tracking — same rule as floating: pause ~0.4s to arm.
   const hoverRef = useRef({ id: null as string | null, x: 0, y: 0, t: 0, still: 0 });
   const armedRef = useRef<string | null>(null);
+  // After a resize-cascade, ignore the trailing onLayoutChange so RGL's
+  // uncascaded layout can't clobber the pushed positions.
+  const suppressLayoutChange = useRef(false);
 
   const items = grid.filter((g) => {
     const w = windows[g.i];
@@ -104,7 +111,13 @@ export default function GridCanvas({
         isDraggable={arrangeMode}
         draggableHandle=".win-drag-handle"
         draggableCancel="button, input, a, select, textarea"
-        onLayoutChange={(layout: Layout[]) => onGridChange(layout as GridPos[])}
+        onLayoutChange={(layout: Layout[]) => {
+          if (suppressLayoutChange.current) {
+            suppressLayoutChange.current = false;
+            return;
+          }
+          onGridChange(layout as GridPos[]);
+        }}
         onDragStart={(_l, oldItem) => {
           setGridDragging(true);
           onDragActive(true);
@@ -180,10 +193,15 @@ export default function GridCanvas({
           setGridDragging(true);
           onDragActive(true);
         }}
-        onResizeStop={(_l, _old, item) => {
+        onResizeStop={(_l, oldItem, item) => {
           setGridDragging(false);
           onDragActive(false);
-          onBringToFront(item.i);
+          // The resize gesture IS the expand: cascade whatever it overlapped.
+          suppressLayoutChange.current = true;
+          const dw = item.w - oldItem.w;
+          const dh = item.h - oldItem.h;
+          const axis = Math.abs(dw) >= Math.abs(dh) ? "h" : "v";
+          onResizePush(item.i, { x: item.x, y: item.y, w: item.w, h: item.h }, axis);
         }}
       >
         {items.map((g) => {
@@ -199,8 +217,6 @@ export default function GridCanvas({
                 onRemoveWindow={() => onRemoveWindow(w.id)}
                 onDetachModule={(moduleId) => onDetachModule(w.id, moduleId)}
                 isDropTarget={dropTargetId === w.id}
-                onToggleExpand={() => onToggleExpand(w.id)}
-                isExpanded={g.prevH != null}
               />
             </div>
           );
