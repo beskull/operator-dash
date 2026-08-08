@@ -173,6 +173,7 @@ export default function RemoteView({ url, winId, moduleId, sessionSeed }: Remote
       <div
         ref={boxRef}
         tabIndex={0}
+        data-no-hotkeys
         onClick={handleClick}
         onWheel={handleWheel}
         onKeyDown={handleKey}

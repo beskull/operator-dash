@@ -32,9 +32,10 @@ export function useHotkeys({
         return;
       }
 
-      // Everything else is ignored while typing in a field.
+      // Everything else is ignored while typing in a field — including the
+      // remote-rendered view, whose focusable div forwards keys to the page.
       const target = e.target as HTMLElement;
-      if (target.closest("input, textarea, select, [contenteditable]")) {
+      if (target.closest("input, textarea, select, [contenteditable], [data-no-hotkeys]")) {
         if (e.key === "Escape") target.blur();
         return;
       }
