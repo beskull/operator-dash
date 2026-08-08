@@ -170,15 +170,16 @@ app.post("/api/input", async (req, res) => {
     const s = sessions.get(String(session || ""));
     if (!s) return res.status(404).json({ error: "unknown session" });
     s.lastUsed = Date.now();
+    const page = s.activePage ?? s.page; // popup gets input while it's streamed
 
     if (type === "click") {
-      await s.page.mouse.click(Number(req.body.x) || 0, Number(req.body.y) || 0);
+      await page.mouse.click(Number(req.body.x) || 0, Number(req.body.y) || 0);
     } else if (type === "scroll") {
-      await s.page.mouse.wheel(0, Number(req.body.deltaY) || 0);
+      await page.mouse.wheel(0, Number(req.body.deltaY) || 0);
     } else if (type === "key") {
       const key = String(req.body.key || "");
-      if (key.length === 1) await s.page.keyboard.type(key);
-      else await s.page.keyboard.press(key);
+      if (key.length === 1) await page.keyboard.type(key);
+      else await page.keyboard.press(key);
     }
     res.json({ ok: true });
   } catch (e) {
@@ -210,8 +211,9 @@ wss.on("connection", async (ws, req) => {
     return ws.close();
   }
 
-  let cdp = null;
   let metaTimer = null;
+  // The page currently being streamed — switches to OAuth popups and back.
+  let current = { page: null, cdp: null };
   try {
     const page = await getPage(session, url, w, h);
     const rec = sessions.get(session);
@@ -225,43 +227,65 @@ wss.on("connection", async (ws, req) => {
       rec.cdp = null;
     }
 
-    cdp = await page.context().newCDPSession(page);
-    if (rec) rec.cdp = cdp;
-
-    cdp.on("Page.screencastFrame", (ev) => {
-      if (ws.readyState === 1) {
-        ws.send(JSON.stringify({ t: "frame", data: ev.data, url: page.url() }));
-      }
-      // Frames stop flowing without the ack.
-      cdp.send("Page.screencastFrameAck", { sessionId: ev.sessionId }).catch(() => {});
-    });
-
-    await cdp.send("Page.startScreencast", {
-      format: "jpeg",
-      quality: 60,
-      maxWidth: w,
-      maxHeight: h,
-      everyNthFrame: 1,
-    });
-
     const sendMeta = async () => {
-      if (ws.readyState !== 1) return;
-      const title = await page.title().catch(() => "");
-      ws.send(JSON.stringify({ t: "meta", url: page.url(), title }));
+      if (ws.readyState !== 1 || !current.page) return;
+      const title = await current.page.title().catch(() => "");
+      ws.send(JSON.stringify({ t: "meta", url: current.page.url(), title }));
       const s = sessions.get(session);
       if (s) s.lastUsed = Date.now(); // watching keeps the session alive
     };
-    await sendMeta();
+
+    const streamTo = async (targetPage) => {
+      if (current.cdp) {
+        try {
+          await current.cdp.send("Page.stopScreencast");
+          await current.cdp.detach();
+        } catch {}
+      }
+      await targetPage.setViewportSize({ width: w, height: h }).catch(() => {});
+      const cdp = await targetPage.context().newCDPSession(targetPage);
+      cdp.on("Page.screencastFrame", (ev) => {
+        if (ws.readyState === 1) {
+          ws.send(JSON.stringify({ t: "frame", data: ev.data, url: targetPage.url() }));
+        }
+        // Frames stop flowing without the ack.
+        cdp.send("Page.screencastFrameAck", { sessionId: ev.sessionId }).catch(() => {});
+      });
+      await cdp.send("Page.startScreencast", {
+        format: "jpeg",
+        quality: 60,
+        maxWidth: w,
+        maxHeight: h,
+        everyNthFrame: 1,
+      });
+      current = { page: targetPage, cdp };
+      if (rec) {
+        rec.cdp = cdp;
+        rec.activePage = targetPage;
+      }
+      sendMeta();
+    };
+
+    await streamTo(page);
+
+    // OAuth flows open popups — follow them, then return to the opener.
+    page.on("popup", async (popup) => {
+      try {
+        await streamTo(popup);
+        popup.on("close", () => streamTo(page).catch(() => {}));
+      } catch {}
+    });
+
     metaTimer = setInterval(sendMeta, 3000);
 
     ws.on("close", async () => {
       clearInterval(metaTimer);
       try {
-        await cdp.send("Page.stopScreencast");
-        await cdp.detach();
+        await current.cdp?.send("Page.stopScreencast");
+        await current.cdp?.detach();
       } catch {}
       const s = sessions.get(session);
-      if (s?.cdp === cdp) s.cdp = null;
+      if (s?.cdp === current.cdp) s.cdp = null;
     });
   } catch (e) {
     clearInterval(metaTimer);

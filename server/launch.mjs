@@ -54,19 +54,28 @@ async function chromeUA() {
   return cachedUa;
 }
 
-export async function launchShared({ headless }) {
+export async function launchShared({ headless, profileDir } = {}) {
   const userAgent = await chromeUA();
   const base = {
     headless,
     viewport: { width: 1280, height: 800 },
     userAgent,
-    args: ["--disable-blink-features=AutomationControlled"],
+    extraHTTPHeaders: { "Accept-Language": "en-US,en;q=0.9" },
+    args: [
+      "--disable-blink-features=AutomationControlled",
+      // Real GPU/WebGL in headless (SwiftShader software GL is a bot tell).
+      "--enable-gpu",
+      "--use-angle=metal",
+      "--enable-webgl",
+      "--ignore-gpu-blocklist",
+    ],
   };
+  const dir = profileDir ?? PROFILE_DIR;
   let context;
   try {
-    context = await chromium.launchPersistentContext(PROFILE_DIR, { ...base, channel: "chrome" });
+    context = await chromium.launchPersistentContext(dir, { ...base, channel: "chrome" });
   } catch {
-    context = await chromium.launchPersistentContext(PROFILE_DIR, base);
+    context = await chromium.launchPersistentContext(dir, base);
   }
   await context.addInitScript(INIT_SCRIPT);
   return context;
