@@ -14,12 +14,8 @@
 
 import express from "express";
 import { createServer } from "node:http";
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { chromium } from "playwright";
 import { WebSocketServer } from "ws";
-
-const PROFILE_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), ".chrome-profile");
+import { launchShared } from "./launch.mjs";
 
 const PORT = 5198;
 const IDLE_TIMEOUT_MS = 5 * 60_000;
@@ -97,34 +93,12 @@ app.get("/api/check", async (req, res) => {
 
 // ── Browser sessions ────────────────────────────────────────────────────────
 
-// Single persistent context = shared cookie jar. Anti-detection basics so
-// Cloudflare & co. don't loop their "verify you are human" challenge:
-// real Chrome when installed, automation flag stripped, webdriver hidden.
+// Single persistent context = shared cookie jar. Launch identity (real Chrome,
+// headed-equivalent UA, automation flags hidden) lives in ./launch.mjs and is
+// shared with scripts/login.mjs so Cloudflare clearance stays valid.
 let contextPromise = null;
 const getContext = () =>
-  (contextPromise ??= (async () => {
-    const base = {
-      headless: process.env.REMOTE_HEADLESS !== "0",
-      viewport: { width: 1280, height: 800 },
-      args: ["--disable-blink-features=AutomationControlled"],
-    };
-    let context;
-    try {
-      // Real Google Chrome is far less fingerprinted than Chrome-for-Testing.
-      context = await chromium.launchPersistentContext(PROFILE_DIR, { ...base, channel: "chrome" });
-      console.log("[remote] using installed Google Chrome");
-    } catch {
-      context = await chromium.launchPersistentContext(PROFILE_DIR, base);
-      console.log("[remote] using bundled Chromium (install Chrome for better bot-check pass rates)");
-    }
-    await context.addInitScript(() => {
-      Object.defineProperty(navigator, "webdriver", { get: () => undefined });
-      Object.defineProperty(navigator, "languages", { get: () => ["en-US", "en"] });
-      // @ts-ignore — present in real Chrome, absent in automation builds
-      window.chrome = window.chrome || { runtime: {} };
-    });
-    return context;
-  })());
+  (contextPromise ??= launchShared({ headless: process.env.REMOTE_HEADLESS !== "0" }));
 
 const sessions = new Map(); // id → { page, lastUsed, cdp? }
 const pending = new Map(); // id → Promise<page>

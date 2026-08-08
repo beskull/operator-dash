@@ -1,24 +1,11 @@
 // One-time headed login for the remote renderer's shared profile.
-// Opens a visible Chromium window using server/.chrome-profile — sign in to
-// whatever you need (Google, etc.), then close the window. Every headless
-// remote window reuses those credentials from then on.
-import path from "node:path";
-import { fileURLToPath } from "node:url";
-import { chromium } from "playwright";
+// Opens a visible Chrome window using server/.chrome-profile — sign in to
+// whatever you need (Google, Cloudflare checks, etc.), then close the window.
+// Uses the SAME launch identity as the headless renderer (see server/launch.mjs)
+// so cf_clearance and friends stay valid when the headless windows reuse them.
+import { launchShared } from "../server/launch.mjs";
 
-const profileDir = path.join(path.dirname(fileURLToPath(import.meta.url)), "../server/.chrome-profile");
-
-const base = {
-  headless: false,
-  viewport: { width: 1200, height: 850 },
-  args: ["--disable-blink-features=AutomationControlled"],
-};
-let ctx;
-try {
-  ctx = await chromium.launchPersistentContext(profileDir, { ...base, channel: "chrome" });
-} catch {
-  ctx = await chromium.launchPersistentContext(profileDir, base);
-}
+const ctx = await launchShared({ headless: false });
 
 const page = ctx.pages()[0] ?? (await ctx.newPage());
 await page.goto("https://accounts.google.com/");
