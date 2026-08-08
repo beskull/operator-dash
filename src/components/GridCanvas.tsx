@@ -27,12 +27,6 @@ interface GridCanvasProps {
   onHoverDropTarget: (id: string | null) => void;
   /** Grid drag ended over an armed target — attach into its scroll stack. */
   onAttachWindow: (sourceId: string, targetId: string) => void;
-  /** Resize ended — cascade overlapped windows (down, or right/wrap). */
-  onResizePush: (
-    id: string,
-    rect: { x: number; y: number; w: number; h: number },
-    axis: "h" | "v"
-  ) => void;
   dropTargetId: string | null;
   /** Another window is in zen mode — dim the grid behind the focus overlay. */
   dimmed?: boolean;
@@ -57,19 +51,19 @@ export default function GridCanvas({
   onDragActive,
   onHoverDropTarget,
   onAttachWindow,
-  onResizePush,
   dropTargetId,
   dimmed,
 }: GridCanvasProps) {
   const [gridDragging, setGridDragging] = useState(false);
+  // Move drags run with preventCollision (free placement, nothing gets
+  // bumped). Resizes DON'T: during a resize we want RGL's native collision
+  // resolution, which pushes overlapped neighbors live, mid-gesture.
+  const [resizing, setResizing] = useState(false);
   // Pre-drag rect, so an edge-drop or attach leaves the grid entry untouched.
   const dragOrigin = useRef<GridPos | null>(null);
   // Attach dwell tracking — same rule as floating: pause ~0.4s to arm.
   const hoverRef = useRef({ id: null as string | null, x: 0, y: 0, t: 0, still: 0 });
   const armedRef = useRef<string | null>(null);
-  // After a resize-cascade, ignore the trailing onLayoutChange so RGL's
-  // uncascaded layout can't clobber the pushed positions.
-  const suppressLayoutChange = useRef(false);
 
   const items = grid.filter((g) => {
     if (!g) return false;
@@ -107,17 +101,11 @@ export default function GridCanvas({
         rowHeight={36}
         margin={[8, 8]}
         compactType={null}
-        preventCollision
+        preventCollision={!resizing}
         isDraggable={arrangeMode}
         draggableHandle=".win-drag-handle"
         draggableCancel="button, input, a, select, textarea"
-        onLayoutChange={(layout: Layout[]) => {
-          if (suppressLayoutChange.current) {
-            suppressLayoutChange.current = false;
-            return;
-          }
-          onGridChange(layout as GridPos[]);
-        }}
+        onLayoutChange={(layout: Layout[]) => onGridChange(layout as GridPos[])}
         onDragStart={(_l, oldItem) => {
           setGridDragging(true);
           onDragActive(true);
@@ -190,21 +178,16 @@ export default function GridCanvas({
           clearDrag();
         }}
         onResizeStart={() => {
+          setResizing(true);
           setGridDragging(true);
           onDragActive(true);
         }}
-        onResizeStop={(_l, oldItem, item) => {
+        onResizeStop={() => {
+          setResizing(false);
           setGridDragging(false);
           onDragActive(false);
-          // The resize gesture IS the expand: cascade whatever it overlapped.
-          // Time-based suppression: swallow the trailing onLayoutChange without
-          // leaking the flag into the next interaction.
-          suppressLayoutChange.current = true;
-          setTimeout(() => (suppressLayoutChange.current = false), 50);
-          const dw = item.w - oldItem.w;
-          const dh = item.h - oldItem.h;
-          const axis = Math.abs(dw) >= Math.abs(dh) ? "h" : "v";
-          onResizePush(item.i, { x: item.x, y: item.y, w: item.w, h: item.h }, axis);
+          // RGL already pushed overlapped neighbors live (preventCollision was
+          // off for this gesture); onLayoutChange commits the final layout.
         }}
       >
         {items.map((g) => {

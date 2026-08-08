@@ -42,6 +42,11 @@ export default function App() {
 
   const { board, workspace } = selectActive(state);
 
+  // Debug bridge (prototype): lets tests/inspector read the live state.
+  useEffect(() => {
+    (window as unknown as { __opdash: unknown }).__opdash = state;
+  }, [state]);
+
   // Theme: .light class on <html> drives all light: variants + CSS overrides.
   useEffect(() => {
     document.documentElement.classList.toggle("light", theme === "light");
@@ -99,11 +104,7 @@ export default function App() {
     (windowId: string) => dispatch({ type: "bringToFront", windowId }),
     []
   );
-  const resizePush = useCallback(
-    (windowId: string, rect: { x: number; y: number; w: number; h: number }, axis: "h" | "v") =>
-      dispatch({ type: "resizePush", windowId, rect, axis }),
-    []
-  );
+
 
   // ── Derived layout ──
   const windows = useMemo(() => Object.values(workspace.windows), [workspace.windows]);
@@ -217,7 +218,6 @@ export default function App() {
                 onDragActive={setDragActive}
                 onHoverDropTarget={setDropTargetId}
                 onAttachWindow={attachWindow}
-                onResizePush={resizePush}
                 dropTargetId={dropTargetId}
                 dimmed={Boolean(focused)}
               />
