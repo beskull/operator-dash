@@ -72,6 +72,7 @@ export default function GridCanvas({
   const suppressLayoutChange = useRef(false);
 
   const items = grid.filter((g) => {
+    if (!g) return false;
     const w = windows[g.i];
     return w && w.layoutState === "normal";
   });
@@ -107,7 +108,6 @@ export default function GridCanvas({
         margin={[8, 8]}
         compactType={null}
         preventCollision
-        isBounded
         isDraggable={arrangeMode}
         draggableHandle=".win-drag-handle"
         draggableCancel="button, input, a, select, textarea"
@@ -197,7 +197,10 @@ export default function GridCanvas({
           setGridDragging(false);
           onDragActive(false);
           // The resize gesture IS the expand: cascade whatever it overlapped.
+          // Time-based suppression: swallow the trailing onLayoutChange without
+          // leaking the flag into the next interaction.
           suppressLayoutChange.current = true;
+          setTimeout(() => (suppressLayoutChange.current = false), 50);
           const dw = item.w - oldItem.w;
           const dh = item.h - oldItem.h;
           const axis = Math.abs(dw) >= Math.abs(dh) ? "h" : "v";

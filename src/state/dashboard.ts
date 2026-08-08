@@ -113,10 +113,12 @@ export function dashboardReducer(state: DashboardState, action: DashboardAction)
       // RGL reports only currently-rendered items; merge them over the stored
       // layout so flattened/floating windows keep their last rects.
       return updateActiveWorkspace(state, (ws) => {
-        const prev = ws.slots[ws.activeSlot].grid;
-        const incoming = new Set(action.layout.map((l) => l.i));
+        const slot = ws.slots[ws.activeSlot];
+        if (!slot) return ws;
+        const prev = slot.grid.filter(Boolean);
+        const incoming = new Set(action.layout.filter(Boolean).map((l) => l.i));
         const merged: GridPos[] = [
-          ...action.layout.map((l) => ({
+          ...action.layout.filter(Boolean).map((l) => ({
             i: l.i,
             x: l.x,
             y: l.y,
@@ -156,7 +158,7 @@ export function dashboardReducer(state: DashboardState, action: DashboardAction)
       return updateActiveWorkspace(state, (ws) => {
         const slot = ws.slots[ws.activeSlot];
         if (!slot) return ws;
-        const grid = slot.grid.map((g) => ({ ...g }));
+        const grid = slot.grid.filter(Boolean).map((g) => ({ ...g }));
         const mine = grid.find((g) => g.i === action.windowId);
         if (!mine) return ws;
         Object.assign(mine, action.rect);
@@ -164,9 +166,10 @@ export function dashboardReducer(state: DashboardState, action: DashboardAction)
         const moved = new Set<string>([mine.i]);
         const queue = [mine.i];
         while (queue.length) {
-          const m = grid.find((g) => g.i === queue.shift()!)!;
+          const m = grid.find((g) => g.i === queue.shift()!);
+          if (!m) break;
           for (const o of grid) {
-            if (moved.has(o.i)) continue;
+            if (!o || moved.has(o.i)) continue;
             const overlapX = m.x < o.x + o.w && o.x < m.x + m.w;
             const overlapY = m.y < o.y + o.h && o.y < m.y + m.h;
             if (!overlapX || !overlapY) continue;
