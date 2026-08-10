@@ -16,7 +16,13 @@ npm run build      # typecheck + production build
 vercel --prod      # redeploy the hosted dashboard
 ```
 
-Hosted-instance note: the remote renderer (Playwright/Chromium + WS) can't run on Vercel's serverless model, so hosted windows fall back to plain iframes for frame-blocked sites. To host the renderer too, run `server/remote.mjs` on a container host (Railway/Fly/Render) and set `VITE_REMOTE_URL` in the Vercel project env, then redeploy.
+Hosted-instance note: the remote renderer runs on **each user's own machine** — no server to host, no shared credentials. The hosted app defaults to `localhost:5198`; teammates start their local renderer with one command (also shown in the app's "renderer" pill):
+
+```bash
+npx -y github:beskull/operator-dash
+```
+
+(needs Node.js; first run downloads Chromium once). The control panel's renderer pill shows the connection state and has a Test connection button. For a centrally hosted renderer instead, run `server/remote.mjs` on a container host (Fly.io packaging included: `Dockerfile` + `fly.toml`), set `RENDERER_TOKEN`, and configure `VITE_REMOTE_URL` + `VITE_REMOTE_TOKEN` in Vercel.
 
 ### Remote renderer (for sites that block iframes)
 
