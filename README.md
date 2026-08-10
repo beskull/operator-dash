@@ -6,12 +6,17 @@ An operator "mission control" UI where multiple apps/tools/webpages live togethe
 
 ## Run
 
+**Hosted (team):** https://operator-dash-one.vercel.app — deploys from this repo via `vercel --prod` (Vite static build, no server pieces).
+
 ```bash
 npm install
 npm run dev        # dashboard only → http://localhost:5199 (pinned, strictPort)
 npm run dev:full   # dashboard + remote renderer (for frame-blocked sites)
 npm run build      # typecheck + production build
+vercel --prod      # redeploy the hosted dashboard
 ```
+
+Hosted-instance note: the remote renderer (Playwright/Chromium + WS) can't run on Vercel's serverless model, so hosted windows fall back to plain iframes for frame-blocked sites. To host the renderer too, run `server/remote.mjs` on a container host (Railway/Fly/Render) and set `VITE_REMOTE_URL` in the Vercel project env, then redeploy.
 
 ### Remote renderer (for sites that block iframes)
 

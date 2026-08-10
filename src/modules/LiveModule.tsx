@@ -1,10 +1,9 @@
 import { ExternalLink, Globe, Pencil, RotateCw, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import { REMOTE } from "../config";
 import { trackLiveUrl } from "../state/liveWindows";
 import type { ModuleDef } from "../types";
 import RemoteView from "./RemoteView";
-
-const REMOTE = "http://localhost:5198";
 
 interface LiveModuleProps {
   module: ModuleDef;

@@ -1,8 +1,6 @@
 import { useEffect, useRef, useState } from "react";
+import { REMOTE, REMOTE_WS } from "../config";
 import { trackLiveUrl, urlHost } from "../state/liveWindows";
-
-const REMOTE = "http://localhost:5198";
-const REMOTE_WS = REMOTE.replace(/^http/, "ws");
 
 interface RemoteViewProps {
   /** Starting URL (the server navigates once per session; links then drive it). */
