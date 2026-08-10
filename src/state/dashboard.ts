@@ -54,6 +54,7 @@ export function applySlot(ws: WorkspaceState, slotIndex: number): WorkspaceState
 /** Default title/description for user-spawned windows, by module type. */
 const MODULE_META: Record<string, { title: string; desc: string }> = {
   live: { title: "Live view", desc: "embedded URL" },
+  chatbot: { title: "Chatbot", desc: "FluxPrompt chatbot" },
   logs: { title: "Log Stream", desc: "streaming output" },
   statusCard: { title: "Status Card", desc: "service health" },
   dashboard: { title: "Metrics", desc: "throughput + rates" },

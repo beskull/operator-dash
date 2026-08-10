@@ -1,5 +1,6 @@
 import type { ModuleDef } from "../types";
 import ChatModule from "../modules/ChatModule";
+import ChatbotModule from "../modules/ChatbotModule";
 import ClaudeCodeModule from "../modules/ClaudeCodeModule";
 import DashboardModule from "../modules/DashboardModule";
 import DocsModule from "../modules/DocsModule";
@@ -53,6 +54,8 @@ export default function ModuleHost({
       return <DashboardModule module={module} />;
     case "chat":
       return <ChatModule module={module} />;
+    case "chatbot":
+      return <ChatbotModule module={module} />;
     case "sessions":
       return <SessionsModule module={module} />;
     case "docs":

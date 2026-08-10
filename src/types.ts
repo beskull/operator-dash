@@ -24,6 +24,7 @@ export type ModuleType =
   | "patent"
   | "marketing"
   | "live"
+  | "chatbot"
   | "generic";
 
 /** A user-owned saved arrangement of a workspace's windows. */

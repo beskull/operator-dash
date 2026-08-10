@@ -1,6 +1,7 @@
 import {
   Activity,
   BarChart3,
+  Bot,
   Bug,
   CircleHelp,
   Code2,
@@ -22,15 +23,18 @@ import type { ModuleType, SlotDef } from "../types";
 
 const SLOT_ICONS = [Activity, Bug, Hammer];
 
-const ADD_MENU: Array<{ type: ModuleType; label: string; icon: typeof Globe }> = [
-  { type: "live", label: "Live URL…", icon: Globe },
-  { type: "logs", label: "Log stream", icon: ScrollText },
+// Matches the production dashboard's "+ Add Widget" trio first (chatbot,
+// URL, agent flow), with the prototype's mock surfaces after the divider.
+const ADD_MENU: Array<{ type: ModuleType; label: string; icon: typeof Globe; dividerBefore?: boolean }> = [
+  { type: "chatbot", label: "Chatbot (FluxPrompt)", icon: Bot },
+  { type: "live", label: "Add URL…", icon: Globe },
+  { type: "canvas", label: "Agent flow (FluxPrompt)", icon: Workflow },
+  { type: "logs", label: "Log stream", icon: ScrollText, dividerBefore: true },
   { type: "statusCard", label: "Status card", icon: HeartPulse },
   { type: "dashboard", label: "Metrics", icon: BarChart3 },
   { type: "chat", label: "Chat console", icon: MessageSquare },
   { type: "docs", label: "Notes / docs", icon: FileText },
   { type: "sessions", label: "Sessions", icon: Users },
-  { type: "canvas", label: "Flux canvas", icon: Workflow },
   { type: "webapp", label: "Code editor", icon: Code2 },
 ];
 
@@ -161,22 +165,26 @@ export default function ControlPanel({
               }}
             />
             <div className="anim-fade-in absolute left-0 top-full z-[46] mt-1 w-44 overflow-hidden rounded-lg border border-slate-700/80 bg-[#12151d]/98 py-1 shadow-2xl backdrop-blur light:border-slate-300 light:bg-white/98">
-              {ADD_MENU.map(({ type, label, icon: Icon }) => (
-                <button
-                  key={type}
-                  onClick={() => {
-                    if (type === "live") {
-                      setUrlMode(true);
-                    } else {
-                      onAddWindow(type);
-                      setAddOpen(false);
-                    }
-                  }}
-                  className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[11px] text-slate-300 transition-colors hover:bg-slate-700/60 light:text-slate-700 light:hover:bg-slate-100"
-                >
-                  <Icon size={12} className="shrink-0 opacity-70" />
-                  {label}
-                </button>
+              {ADD_MENU.map(({ type, label, icon: Icon, dividerBefore }) => (
+                <div key={type}>
+                  {dividerBefore && (
+                    <div className="my-1 border-t border-slate-700/60 light:border-slate-200" />
+                  )}
+                  <button
+                    onClick={() => {
+                      if (type === "live") {
+                        setUrlMode(true);
+                      } else {
+                        onAddWindow(type);
+                        setAddOpen(false);
+                      }
+                    }}
+                    className="flex w-full items-center gap-2 px-2.5 py-1.5 text-left text-[11px] text-slate-300 transition-colors hover:bg-slate-700/60 light:text-slate-700 light:hover:bg-slate-100"
+                  >
+                    <Icon size={12} className="shrink-0 opacity-70" />
+                    {label}
+                  </button>
+                </div>
               ))}
             </div>
           </>
