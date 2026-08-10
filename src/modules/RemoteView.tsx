@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { REMOTE, REMOTE_WS } from "../config";
+import { REMOTE, REMOTE_WS, withToken } from "../config";
 import { trackLiveUrl, urlHost } from "../state/liveWindows";
 
 interface RemoteViewProps {
@@ -70,9 +70,11 @@ export default function RemoteView({ url, winId, moduleId, sessionSeed }: Remote
     const w = Math.max(320, Math.floor(boxRef.current?.clientWidth ?? 800));
     const h = Math.max(240, Math.floor(boxRef.current?.clientHeight ?? 500));
     const ws = new WebSocket(
-      `${REMOTE_WS}/api/stream?session=${encodeURIComponent(
-        sessionRef.current
-      )}&url=${encodeURIComponent(url)}&w=${w}&h=${h}`
+      withToken(
+        `${REMOTE_WS}/api/stream?session=${encodeURIComponent(
+          sessionRef.current
+        )}&url=${encodeURIComponent(url)}&w=${w}&h=${h}`
+      )
     );
 
     const onUrl = (newUrl: string) => {
@@ -120,7 +122,7 @@ export default function RemoteView({ url, winId, moduleId, sessionSeed }: Remote
   }, [url, moduleId, winId, sessionSeed, sizeNonce]);
 
   const post = (body: Record<string, unknown>) =>
-    fetch(`${REMOTE}/api/input`, {
+    fetch(withToken(`${REMOTE}/api/input`), {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({ session: sessionRef.current, ...body }),

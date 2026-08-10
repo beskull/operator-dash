@@ -17,16 +17,28 @@ import { createServer } from "node:http";
 import { WebSocketServer } from "ws";
 import { launchShared } from "./launch.mjs";
 
-const PORT = 5198;
+const PORT = Number(process.env.PORT) || 5198;
+const HOST = process.env.HOST || "127.0.0.1"; // containers set HOST=0.0.0.0
+const TOKEN = process.env.RENDERER_TOKEN || null; // set in hosted deploys
 const IDLE_TIMEOUT_MS = 5 * 60_000;
 
 const app = express();
 app.use(express.json({ limit: "64kb" }));
 app.use((req, res, next) => {
-  res.setHeader("Access-Control-Allow-Origin", "*"); // local dev tool
-  res.setHeader("Access-Control-Allow-Headers", "content-type");
+  res.setHeader("Access-Control-Allow-Origin", "*"); // token-gated anyway
+  res.setHeader("Access-Control-Allow-Headers", "content-type, authorization");
   res.setHeader("Access-Control-Expose-Headers", "x-remote-url, x-remote-title");
   if (req.method === "OPTIONS") return res.sendStatus(204);
+  next();
+});
+
+// Token gate (hosted only — local dev leaves RENDERER_TOKEN unset).
+const tokenOf = (req) =>
+  (req.headers.authorization || "").replace(/^Bearer\s+/i, "") ||
+  String(req.query.token || "");
+app.use((req, res, next) => {
+  if (!TOKEN) return next();
+  if (tokenOf(req) !== TOKEN) return res.status(401).json({ error: "unauthorized" });
   next();
 });
 
@@ -193,11 +205,12 @@ const server = createServer(app);
 const wss = new WebSocketServer({ noServer: true });
 
 server.on("upgrade", (req, socket, head) => {
-  if (req.url?.startsWith("/api/stream")) {
-    wss.handleUpgrade(req, socket, head, (ws) => wss.emit("connection", ws, req));
-  } else {
-    socket.destroy();
+  if (!req.url?.startsWith("/api/stream")) return socket.destroy();
+  if (TOKEN) {
+    const q = new URL(req.url, "http://localhost").searchParams;
+    if (q.get("token") !== TOKEN) return socket.destroy();
   }
+  wss.handleUpgrade(req, socket, head, (ws) => wss.emit("connection", ws, req));
 });
 
 wss.on("connection", async (ws, req) => {
@@ -294,6 +307,6 @@ wss.on("connection", async (ws, req) => {
   }
 });
 
-server.listen(PORT, "127.0.0.1", () => {
-  console.log(`[remote] renderer listening on http://localhost:${PORT} (http + ws)`);
+server.listen(PORT, HOST, () => {
+  console.log(`[remote] renderer listening on http://${HOST}:${PORT} (http + ws${TOKEN ? " + token" : ""})`);
 });

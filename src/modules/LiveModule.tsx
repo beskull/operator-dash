@@ -1,6 +1,6 @@
 import { ExternalLink, Globe, Pencil, RotateCw, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { REMOTE } from "../config";
+import { REMOTE, withToken } from "../config";
 import { trackLiveUrl } from "../state/liveWindows";
 import type { ModuleDef } from "../types";
 import RemoteView from "./RemoteView";
@@ -32,7 +32,9 @@ export default function LiveModule({ module, winId, onSetUrl, onRemove }: LiveMo
     let dead = false;
     setEmbedMode("checking");
     fetch(
-      `${REMOTE}/api/check?url=${encodeURIComponent(module.url)}&origin=${encodeURIComponent(location.origin)}`
+      withToken(
+        `${REMOTE}/api/check?url=${encodeURIComponent(module.url)}&origin=${encodeURIComponent(location.origin)}`
+      )
     )
       .then((r) => r.json())
       .then((j) => !dead && setEmbedMode(j.embeddable ? "iframe" : "remote"))

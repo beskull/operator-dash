@@ -123,10 +123,16 @@ export default function App() {
     onExitFocus: () => focused && updateWindow(focused.id, (w) => ({ ...w, layoutState: "normal" })),
   });
 
-  const restoreWindow = useCallback(
-    (id: string) => updateWindow(id, (w) => ({ ...w, layoutState: "normal" })),
-    [updateWindow]
-  );
+  const restoreWindow = useCallback((id: string) => {
+    dispatch({ type: "restoreWindow", windowId: id });
+    // If it landed below the fold, bring it into view.
+    requestAnimationFrame(() => {
+      document
+        .querySelector(`[data-window-id="${id}"]`)
+        ?.closest(".react-grid-item")
+        ?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    });
+  }, []);
   const exitFocus = useCallback(() => {
     if (focused) updateWindow(focused.id, (w) => ({ ...w, layoutState: "normal" }));
   }, [focused, updateWindow]);

@@ -23,7 +23,8 @@ export type DashboardAction =
   | { type: "setLiveUrl"; windowId: string; url: string; moduleId?: string }
   | { type: "removeWindow"; windowId: string }
   | { type: "attachWindow"; sourceId: string; targetId: string }
-  | { type: "detachModule"; windowId: string; moduleId: string };
+  | { type: "detachModule"; windowId: string; moduleId: string }
+  | { type: "restoreWindow"; windowId: string };
 
 /** Mode switch: return assigned windows to the grid, apply tab presets. */
 export function applySlot(ws: WorkspaceState, slotIndex: number): WorkspaceState {
@@ -192,6 +193,43 @@ export function dashboardReducer(state: DashboardState, action: DashboardAction)
         return {
           ...ws,
           slots: ws.slots.map((s, i) => (i === ws.activeSlot ? { ...s, grid } : s)),
+        };
+      });
+    case "restoreWindow":
+      // Dock-strip restore: back to "normal" AND guaranteed a rect in the
+      // active slot — without one, the window would render nowhere.
+      return updateActiveWorkspace(state, (ws) => {
+        const w = ws.windows[action.windowId];
+        if (!w) return ws;
+        const windows: Record<string, WindowState> = {
+          ...ws.windows,
+          [action.windowId]: { ...w, layoutState: "normal" },
+        };
+        const slot = ws.slots[ws.activeSlot];
+        if (!slot || slot.grid.some((g) => g && g.i === action.windowId)) {
+          return { ...ws, windows };
+        }
+        // No rect in this slot: reuse its size from any other slot, place it
+        // at the bottom of the current grid.
+        const known = ws.slots
+          .map((s) => s.grid.find((g) => g && g.i === action.windowId))
+          .find(Boolean);
+        const w_ = known?.w ?? 6;
+        const h_ = known?.h ?? 6;
+        const maxY = Math.max(0, ...slot.grid.filter(Boolean).map((g) => g.y + g.h));
+        const entry: GridPos = {
+          i: action.windowId,
+          x: Math.max(0, Math.min(known?.x ?? 0, 12 - w_)),
+          y: maxY,
+          w: w_,
+          h: h_,
+        };
+        return {
+          ...ws,
+          windows,
+          slots: ws.slots.map((s, i) =>
+            i === ws.activeSlot ? { ...s, grid: [...slot.grid.filter(Boolean), entry] } : s
+          ),
         };
       });
     case "updateWindow":
