@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 // Remote renderer for sites that refuse to be iframed.
 // Local dev companion to the dashboard (port 5199) — binds localhost only.
 //
@@ -41,6 +42,8 @@ app.use((req, res, next) => {
   if (tokenOf(req) !== TOKEN) return res.status(401).json({ error: "unauthorized" });
   next();
 });
+
+app.get("/api/health", (_req, res) => res.json({ ok: true, version: 1 }));
 
 const UA =
   "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36";

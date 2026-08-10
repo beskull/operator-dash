@@ -20,6 +20,7 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import type { ModuleType, SlotDef } from "../types";
+import RendererStatus from "./RendererStatus";
 
 const SLOT_ICONS = [Activity, Bug, Hammer];
 
@@ -220,6 +221,7 @@ export default function ControlPanel({
       </label>
 
       <div className="ml-auto flex items-center gap-3">
+        <RendererStatus />
         <button
           onClick={onToggleMinimalHeaders}
           title="Work mode (h): hide board/workspace/slot chrome and slim the window headers — everything but your windows goes away"

@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.1.0",
   "type": "module",
+  "bin": {
+    "operator-dash": "server/remote.mjs"
+  },
   "scripts": {
     "dev": "vite",
     "remote": "node server/remote.mjs",

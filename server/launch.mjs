@@ -7,10 +7,25 @@
 // send the headed-equivalent UA instead.
 
 import path from "node:path";
+import { existsSync } from "node:fs";
+import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 
 export const PROFILE_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), ".chrome-profile");
+
+// First-run friendliness for npx installs: if neither a system Chrome nor the
+// bundled Chromium exists, download Chromium once.
+let browserChecked = false;
+function ensureBrowser() {
+  if (browserChecked) return;
+  browserChecked = true;
+  const MAC_CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
+  if (existsSync(MAC_CHROME)) return; // channel:"chrome" will use the real browser
+  if (existsSync(chromium.executablePath())) return;
+  console.log("[remote] first run — downloading Chromium (~150MB, one time)…");
+  spawnSync("npx", ["-y", "playwright", "install", "chromium"], { stdio: "inherit" });
+}
 
 // Fingerprint surface cleanup applied to every page before any script runs.
 const INIT_SCRIPT = () => {
@@ -55,6 +70,7 @@ async function chromeUA() {
 }
 
 export async function launchShared({ headless, profileDir } = {}) {
+  ensureBrowser();
   const userAgent = await chromeUA();
   const base = {
     headless,
