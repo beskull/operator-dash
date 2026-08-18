@@ -5,6 +5,7 @@ import {
   FlipHorizontal2,
   Link2,
   Minimize2,
+  PanelBottomClose,
   PictureInPicture2,
   Unlink,
 } from "lucide-react";
@@ -102,9 +103,12 @@ export default function WindowFrame({
       case "focus":
         toggleFocus();
         break;
-      case "backdrop":
-        setLayout("backdrop");
-        break;
+      // v2.13: backdrop (send-to-background) is disabled — windows got stuck
+      // behind the panels with no obvious way back. Revisit as a pin-able
+      // surface for non-interactive content (images, meters, logs).
+      // case "backdrop":
+      //   setLayout("backdrop");
+      //   break;
       case "flip":
         flip();
         break;
@@ -200,6 +204,13 @@ export default function WindowFrame({
                 <Link2 size={12} />
               </button>
               <div className="mx-0.5 h-3 w-px bg-slate-700/70 light:bg-slate-300" />
+              <button
+                title="Minimize to bottom dock"
+                onClick={() => setLayout("flattenedBottom")}
+                className={iconBtn}
+              >
+                <PanelBottomClose size={12} />
+              </button>
               {isFloating ? (
                 <button title="Dock back to grid" onClick={toggleFloat} className={iconBtn}>
                   <ArrowDownToLine size={12} />

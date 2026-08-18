@@ -334,16 +334,19 @@ export const initialBoards: BoardState[] = [
   {
     id: "board-ops",
     name: "Enhanced AI Ops",
+    scope: "organization",
     workspaces: [createMissionControl(), createAgentFleet()].map(withLive),
   },
   {
     id: "board-patent",
     name: "Patent Workflows",
+    scope: "workspaces",
     workspaces: [createPatentWorkspace()].map(withLive),
   },
   {
     id: "board-marketing",
     name: "Marketing",
+    scope: "private",
     workspaces: [createMarketingWorkspace()].map(withLive),
   },
 ];

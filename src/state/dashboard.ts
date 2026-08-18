@@ -1,4 +1,12 @@
-import type { BoardState, GridPos, ModuleType, WindowState, WorkspaceState } from "../types";
+import type {
+  BoardState,
+  DashboardScope,
+  GridPos,
+  ModuleType,
+  ShareScope,
+  WindowState,
+  WorkspaceState,
+} from "../types";
 import { createEmptyWorkspace, MAX_BOARDS, MAX_WORKSPACES } from "../data/boards";
 import { normalizeUrl, persistOverlay, urlHost } from "./liveWindows";
 
@@ -17,7 +25,8 @@ export type DashboardAction =
   | { type: "bringToFront"; windowId: string }
   | { type: "resizePush"; windowId: string; rect: { x: number; y: number; w: number; h: number }; axis: "h" | "v" }
   | { type: "updateWindow"; windowId: string; updater: (w: WindowState) => WindowState }
-  | { type: "addBoard"; name: string }
+  | { type: "addBoard"; name: string; scope?: DashboardScope }
+  | { type: "setWorkspaceShare"; share: ShareScope }
   | { type: "addWorkspace"; name: string }
   | { type: "addWindow"; moduleType: ModuleType; url?: string }
   | { type: "setLiveUrl"; windowId: string; url: string; moduleId?: string }
@@ -250,7 +259,8 @@ export function dashboardReducer(state: DashboardState, action: DashboardAction)
       const ws = createEmptyWorkspace(`ws-${Date.now()}`, "Main");
       const board: BoardState = {
         id: boardId,
-        name: action.name.trim() || "New board",
+        name: action.name.trim() || "New dashboard",
+        scope: action.scope ?? "organization",
         workspaces: [ws],
       };
       return {
@@ -272,6 +282,8 @@ export function dashboardReducer(state: DashboardState, action: DashboardAction)
         activeWorkspaceId: ws.id,
       };
     }
+    case "setWorkspaceShare":
+      return updateActiveWorkspace(state, (ws) => ({ ...ws, share: action.share }));
     case "addWindow": {
       return updateActiveWorkspace(state, (ws) => {
         const id = `live-${Date.now()}`;

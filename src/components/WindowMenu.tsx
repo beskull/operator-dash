@@ -3,7 +3,6 @@ import {
   ArrowUpFromLine,
   Crosshair,
   FlipHorizontal2,
-  Layers,
   Minimize2,
   MoreHorizontal,
   PanelBottomClose,
@@ -71,7 +70,8 @@ export default function WindowMenu({
     isFocused
       ? { key: "focus", label: "Exit zen focus", icon: Minimize2 }
       : { key: "focus", label: "Zen focus", icon: Crosshair },
-    { key: "backdrop", label: "Send to background", icon: Layers },
+    // v2.13: backdrop disabled — windows got stuck behind the panels.
+    // { key: "backdrop", label: "Send to background", icon: Layers },
     { key: "popOut", label: "Pop out current tab", icon: PictureInPicture2, hidden: !canPopOut },
     { key: "flip", label: "Flip side", icon: FlipHorizontal2, hidden: !isTwoSided },
     { key: "remove", label: "Remove window", icon: X, danger: true, hidden: !removable },

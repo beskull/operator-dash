@@ -34,16 +34,16 @@ npx -y github:beskull/operator-dash
 
 If the renderer isn't running, everything silently falls back to plain iframes. Verified: google.com and cnn.com (both frame-blocked) render and accept input. Security note: no auth, binds 127.0.0.1 — dev tool only.
 
-**Bot checks (Cloudflare etc.):** the renderer launches your installed Google Chrome (falls back to bundled Chromium), strips the automation blink flag, and hides `navigator.webdriver` — that clears most "verify you are human" loops, especially once you've clicked the checkbox once (clearance persists in the shared profile). If a site still loops, run `npm run remote:login` and pass the check in the visible window once.
+**Bot checks (Cloudflare etc.):** the renderer drives your installed Google Chrome via **patchright** (a Playwright drop-in with the CDP-layer `Runtime.enable` detection leak patched — that leak, not the JS fingerprints, is what heavily protected sites key on; switching to Puppeteer would not have helped since it exposes the same signal). This clears most "verify you are human" loops. For the hardest cases (claude.ai, perplexity.ai run interactive Turnstile that scores the environment, not just the driver), run `npm run remote:login` once and click the checkbox in the visible window — clearance persists in the shared profile and headless runs ride it (the UA is matched headed-equivalent). Note: stop the renderer first — Chrome refuses to share the profile between two instances.
 
 ## Concepts
 
 | Primitive | Meaning |
 |---|---|
-| **Board** | High-level context (Enhanced AI Ops, Patent Workflows, Marketing). Top-bar pills. |
-| **Workspace** | A saved layout within a board. Top-bar chips. |
-| **Grid** | The tiled floor (RGL, 12-col). Each mode has its own stored layout (`WorkspaceState.grids[mode]`, RGL `Layout[]` shape). |
-| **Window** | Capsule hosting one or more modules. States: `normal` (on grid), `flattened{Left,Right,Top,Bottom}` (edge docks), `floating` (custom overlay layer), `focused` (zen overlay), `backdrop` (behind grid). |
+| **Dashboard** | High-level context (Enhanced AI Ops, Patent Workflows, Marketing). Top-left picker with access scope (Organization / Workspaces / Private). Code model still says `Board`. |
+| **Workspace** | A saved layout within a dashboard. Chips nested inside the dashboard's container in the top bar; shareable (public / invite only / org). |
+| **Grid** | The tiled floor (RGL, 12-col). The active layout slot holds the stored layout (`WorkspaceState.slots[activeSlot].grid`, RGL `Layout[]` shape). |
+| **Window** | Capsule hosting one or more modules. States: `normal` (on grid), `flattened{Left,Right,Top,Bottom}` (edge docks), `floating` (custom overlay layer), `focused` (zen overlay). (`backdrop` exists in the model but is disabled — see Versions.) |
 | **Module** | An app surface — mock (ClaudeCode, FluxPrompt canvas, logs…) or `live` (a real URL in an iframe). |
 
 ## Handoff notes for engineering
@@ -57,14 +57,13 @@ If the renderer isn't running, everything silently falls back to plain iframes. 
 
 - **`v1` (git tag)** — the original baseline. Restore with `git checkout v1`; return with `git checkout main`.
 - **v2 (main)** — top edge dock removed (collided with chrome); user-addable boards/workspaces (max 7 each); "+ window" module picker; board/workspace/layout-mode labels.
+- **v2.13** — Board renamed to **Dashboard** (picker dropdown w/ access scopes: Organization / Workspaces / Private); workspaces visually nested in the dashboard's top-bar cluster + share scopes (public / invite only / org); **layout slots UI hidden** (data model kept); **backdrop disabled** (windows got stuck behind panels — revisit as non-interactive pinning for images/meters/logs); **+window trimmed** to the FluxPrompt trio (Chatbot / Add URL / Agent flow); **superchat overlay** (search field, Enter opens); live-URL chrome auto-hides after load (slim reveal strip); one-click minimize-to-bottom-dock button in every header; shrink-resize pulls pushed-down windows back up (upward compaction); renderer switched to **patchright** for CDP stealth.
 
-## Mental model: board → workspace → layout slots
+## Mental model: dashboard → workspace → layout slots
 
-- **Board** = a major area (top-bar pills). Up to 7, user-addable.
-- **Workspace** = the What AND the Where: its own set of windows **and** their layouts. Up to 7 per board, user-addable.
-- **Layout slots** (the `1/2/3` buttons) = the user's saved arrangements *of that workspace's windows*. There is no preset behavior: arranging windows writes into the active slot automatically, each slot remembers its own state, double-click a slot to rename it (seeded as Ops/Debug/Build on the factory workspaces).
-
-Switching slots: windows in the slot's grid return to their saved rects/tabs; on-grid windows the slot doesn't know park in the bottom dock; floating/backdrop windows are untouched.
+- **Dashboard** = a major area (top-left picker). Up to 7, user-addable, each with an access scope.
+- **Workspace** = the What AND the Where: its own set of windows **and** their layouts. Up to 7 per dashboard, user-addable. Chips nest inside the dashboard's container — workspaces inherit from the dashboard.
+- **Layout slots** (data model; UI hidden in v2.13) = the user's saved arrangements *of that workspace's windows*. The active slot auto-captures arrangements. Slot switching/renaming is dormant until the UX is rethought.
 
 ## Live iframe persistence
 
@@ -83,12 +82,14 @@ Switching slots: windows in the slot's grid return to their saved rects/tabs; on
 | While dragging, **pause ~0.4s** on another window | arm attach — **violet** highlight — release merges its modules in as **tabs** (never forced into scroll; toggle to `scroll` if you want the stack) |
 | Drag corner handle | resize (grid SE handle / floating corner grip) — always on |
 | **Double-click header** | zen focus (fill canvas); again to exit |
-| **Resize past a neighbor** | the resize drag IS the expand: vertical growth pushes windows below down; horizontal growth shifts right-side neighbors right, wrapping to a new line when columns run out — works with arrange ON or OFF |
-| **work mode (`h`)** | hides ALL global chrome (boards, workspaces, slots, control bar) and slims window headers — restore via the floating pill or `h` |
+| **Resize past a neighbor** | the resize drag IS the expand: vertical growth pushes windows below down; horizontal growth shifts right-side neighbors right, wrapping to a new line when columns run out — works with arrange ON or OFF. **Shrinking back pulls pushed-down windows up** — everything re-nestles. |
+| **Minimize icon (header)** | one-click flatten to the bottom dock |
+| **work mode (`h`)** | hides ALL global chrome (dashboard picker, workspace chips, control bar) and slims window headers — restore via the floating pill or `h` |
 | Hover a tab → **pop-out icon** | detach that module into its own floating window (also: ⋯ menu → "Pop out current tab"; scroll view has per-section detach buttons) |
 | Click dock strip | restore window to its grid rect |
-| `⋯` menu in header | every action, labeled: dock ×3, float/dock, zen, backdrop, pop out, flip, remove |
-| `1/2/3` `m` `h` `⌘K` `` ` `` `t` `?` `Esc` | slots · arrange · minimal · search · inspector · theme · help · exit zen |
+| `⋯` menu in header | every action, labeled: dock ×3, float/dock, zen, pop out, flip, remove |
+| Search field → **Enter** | opens the **superchat** overlay seeded with your query (mock routing — FluxPrompt fan-out comes later) |
+| `m` `h` `⌘K` `` ` `` `t` `?` `Esc` | arrange · minimal · search · inspector · theme · help · exit zen/overlays |
 
 Color language: **emerald = position** (move placeholder, dock zones), **violet = merge** (attach overlay).
 
@@ -102,15 +103,17 @@ During any drag or resize, pointer events on all embedded iframes are disabled g
 - **Focus / zen mode** — window fills the main panel, side panels dim and shrink. `Esc` exits.
 - **Two-sided windows** — Patent Search: front = config buttons (US PTO / EPO / WIPO / All), flips to the module view with the selected config. 3D CSS flip.
 - **Mode reconfiguration** — Ops / Debug / Build presets per workspace (`modeLayouts` in `src/data/boards.ts`): reassigns which windows live in main vs. right panel and which tab is active.
-- **Keyboard shortcuts** — `1/2/3` switch modes, `⌘K`/`Ctrl+K` focuses command input, `` ` `` toggles the inspector, `t` toggles theme, `Esc` exits zen.
+- **Keyboard shortcuts** — `m` arrange mode, `h` work mode, `⌘K`/`Ctrl+K` focuses command input, `` ` `` toggles the inspector, `t` toggles theme, `Esc` exits zen/overlays.
 - **Debug inspector** — bottom-right live dump of every window and its `layoutState`.
 - **Background canvas** — system-map SVG + ambient blobs; "canvas glow" slider on the control panel adjusts intensity live.
 - **Light mode** — sun/moon toggle in the top bar (or `t`), persisted in localStorage, applied pre-paint. Dark is the base theme; light is a `light:` variant layered on top. Terminal-style modules (logs, code editor, flux canvas) intentionally keep dark surfaces in both themes.
-- **Live URL linking, everywhere** — every window header has a link button (Link2 icon) that binds the *active tab* to any URL; the view becomes a live iframe (mini browser chrome: edit / reload / open-in-tab). "Clear" reverts to the built-in mock view. URLs persist per-workspace in localStorage as bindings layered over the mock data, so factory windows never go stale.
+- **Live URL linking, everywhere** — every window header has a link button (Link2 icon) that binds the *active tab* to any URL; the view becomes a live iframe. Once a URL loads, the mini browser chrome **auto-hides** — hover/click the slim strip at the top of the frame to bring it back (edit / reload / open-in-tab / hide). "Clear" reverts to the built-in mock view. URLs persist per-workspace in localStorage as bindings layered over the mock data, so factory windows never go stale.
   - **Embed caveat:** sites sending `X-Frame-Options` / CSP `frame-ancestors` (google.com, cnn.com, espn.com, most big properties) refuse to render in *any* iframe on *any* host — it's the remote site's policy, not this app or localhost. Your own apps, dev servers, and internal dashboards embed fine; use open-in-tab for the rest.
-- **Add anything** — `+ window` on the control panel. Leads with the production dashboard's trio: **Chatbot (FluxPrompt)**, **Add URL…**, **Agent flow (FluxPrompt)** — then the mock surfaces. Windows spawn floating, are removable via ✕, and persist. `+ board` / `+ workspace` in the top bar (max 7 each, inline name fields).
+- **Add anything** — `+ window` on the control panel. The FluxPrompt trio only: **Chatbot (FluxPrompt)**, **Add URL…**, **Agent flow (FluxPrompt)**. Windows spawn floating, are removable via ✕, and persist. Dashboards are created from the top-left picker (name + access scope); workspaces via `+ workspace` in the chip row (max 7 each).
   - Handoff note: module type `chatbot` is the binding point for real FluxPrompt chatbots (picker chips = bot selection; swap the mock replies for the chat API). Type `canvas` = the agent-flow visual.
-- **Backdrop windows** — the Layers button on any window sends it behind all panels (above the background canvas). Still interactive where panels don't cover it. "Bring to front" (ArrowUpFromLine) restores it.
+- **Superchat overlay** — type in the top-bar search field and hit Enter: a centered chat overlay opens seeded with your query. Mock routing for now (the copy says so); the wired-up build fans the message out through FluxPrompt to the right agents and streams answers back into the one thread.
+- **Sharing scopes (mock)** — dashboards carry an access scope (Organization / Workspaces / Private, shown in the picker and chosen at create time); workspaces have a share popover (Open to public / Invite only / Members of your org). Prototype state only — no real ACLs.
+- ~~**Backdrop windows**~~ — disabled in v2.13: windows sent behind the panels were hard to recover. The `backdrop` layout state stays in the model; the entry points (menu item, layer) are commented out. Likely returns scoped to non-interactive content (pinned images, meters, logs).
 - **Resizing** — grid windows resize via RGL's corner handle; floating windows have a corner grip (bottom-right, drag). Both persist in state.
 - **Drag-to-attach (scroll stacks)** — float a window, drag it over another window, and **pause ~0.4s**: the target arms with "release to attach". Dropping merges the dragged window's modules into the target as a **scroll stack** — sticky section headers, one long scroll. Stack section headers have an Unlink button to detach a module back into its own floating window. Multi-module windows get a `tabs | scroll` toggle in the tab strip to switch views any time.
 

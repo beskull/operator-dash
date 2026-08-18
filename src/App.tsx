@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
 import AppShell from "./components/AppShell";
-import BackdropLayer from "./components/BackdropLayer";
+// v2.13: backdrop disabled — see WindowFrame note.
+// import BackdropLayer from "./components/BackdropLayer";
 import BackgroundCanvas from "./components/BackgroundCanvas";
 import ControlPanel from "./components/ControlPanel";
 import DebugInspector from "./components/DebugInspector";
@@ -9,12 +10,13 @@ import FlattenDock from "./components/FlattenDock";
 import FloatingLayer from "./components/FloatingLayer";
 import GridCanvas from "./components/GridCanvas";
 import HelpOverlay from "./components/HelpOverlay";
+import SuperchatOverlay from "./components/SuperchatOverlay";
 import WindowFrame from "./components/WindowFrame";
 import { initialBoards, MAX_BOARDS, MAX_WORKSPACES } from "./data/boards";
 import { useHotkeys } from "./hooks/useHotkeys";
 import { dashboardReducer, selectActive, type DashboardState } from "./state/dashboard";
 import { setTrackingWorkspace } from "./state/liveWindows";
-import type { GridPos, ModuleType, WindowState } from "./types";
+import type { DashboardScope, GridPos, ModuleType, ShareScope, WindowState } from "./types";
 import type { Edge } from "./utils/edges";
 
 const initialState: DashboardState = {
@@ -33,6 +35,7 @@ export default function App() {
   const [dragActive, setDragActive] = useState(false);
   const [arrangeMode, setArrangeMode] = useState(false);
   const [minimalHeaders, setMinimalHeaders] = useState(false);
+  const [superchatQuery, setSuperchatQuery] = useState<string | null>(null);
   const [theme, setTheme] = useState<"dark" | "light">(() =>
     typeof localStorage !== "undefined" && localStorage.getItem("opdash:theme") === "light"
       ? "light"
@@ -65,11 +68,12 @@ export default function App() {
       dispatch({ type: "updateWindow", windowId, updater }),
     []
   );
-  const setSlot = useCallback((slot: number) => dispatch({ type: "setSlot", slot }), []);
-  const renameSlot = useCallback(
-    (slot: number, name: string) => dispatch({ type: "renameSlot", slot, name }),
-    []
-  );
+  // v2.13: layout-slot UI hidden — slots remain in the data model.
+  // const setSlot = useCallback((slot: number) => dispatch({ type: "setSlot", slot }), []);
+  // const renameSlot = useCallback(
+  //   (slot: number, name: string) => dispatch({ type: "renameSlot", slot, name }),
+  //   []
+  // );
   const setLiveUrl = useCallback(
     (windowId: string, url: string, moduleId?: string) =>
       dispatch({ type: "setLiveUrl", windowId, url, moduleId }),
@@ -83,7 +87,14 @@ export default function App() {
     (moduleType: ModuleType, url?: string) => dispatch({ type: "addWindow", moduleType, url }),
     []
   );
-  const addBoard = useCallback((name: string) => dispatch({ type: "addBoard", name }), []);
+  const addBoard = useCallback(
+    (name: string, scope: DashboardScope) => dispatch({ type: "addBoard", name, scope }),
+    []
+  );
+  const shareWorkspace = useCallback(
+    (share: ShareScope) => dispatch({ type: "setWorkspaceShare", share }),
+    []
+  );
   const addWorkspace = useCallback(
     (name: string) => dispatch({ type: "addWorkspace", name }),
     []
@@ -111,9 +122,9 @@ export default function App() {
   const focused = windows.find((w) => w.layoutState === "focused");
   const grid = workspace.slots[workspace.activeSlot]?.grid ?? [];
 
-  // ── Hotkeys: 1/2/3 slots · ⌘K search · ` inspector · t theme · ? help · Esc exit zen ──
+  // ── Hotkeys: ⌘K search · ` inspector · t theme · ? help · Esc exit zen ──
+  // (1/2/3 slot keys removed in v2.13 — slot UI hidden.)
   useHotkeys({
-    onSlot: setSlot,
     onToggleArrange: () => setArrangeMode((v) => !v),
     onToggleMinimalHeaders: () => setMinimalHeaders((v) => !v),
     onFocusSearch: () => searchRef.current?.select(),
@@ -155,6 +166,9 @@ export default function App() {
           onSelectWorkspace={(workspaceId) => dispatch({ type: "selectWorkspace", workspaceId })}
           onAddBoard={addBoard}
           onAddWorkspace={addWorkspace}
+          workspaceShare={workspace.share ?? "invite"}
+          onShareWorkspace={shareWorkspace}
+          onSubmitSearch={(q) => setSuperchatQuery(q)}
           boardsFull={state.boards.length >= MAX_BOARDS}
           workspacesFull={board.workspaces.length >= MAX_WORKSPACES}
         />
@@ -173,23 +187,20 @@ export default function App() {
           <div className="absolute inset-0 bg-emerald-500/[0.11] light:bg-emerald-500/[0.13]" />
         </div>
 
-        {/* Backdrop windows live behind the grid */}
-        <BackdropLayer
+        {/* Backdrop windows live behind the grid — disabled in v2.13
+            (windows got stuck back there; revisit as non-interactive pinning) */}
+        {/* <BackdropLayer
           windows={windows}
           onWindowUpdate={updateWindow}
           onSetLiveUrl={setLiveUrl}
           onRemoveWindow={removeWindow}
           onDetachModule={detachModule}
           dropTargetId={dropTargetId}
-        />
+        /> */}
 
         <div className="relative z-10 flex h-full flex-col">
           {!minimalHeaders && (
             <ControlPanel
-              slots={workspace.slots}
-              activeSlot={workspace.activeSlot}
-              onSlotChange={setSlot}
-              onRenameSlot={renameSlot}
               arrangeMode={arrangeMode}
               onToggleArrange={() => setArrangeMode((v) => !v)}
               minimalHeaders={minimalHeaders}
@@ -293,6 +304,10 @@ export default function App() {
         )}
 
         {helpOpen && <HelpOverlay onClose={() => setHelpOpen(false)} />}
+
+        {superchatQuery !== null && (
+          <SuperchatOverlay initialQuery={superchatQuery} onClose={() => setSuperchatQuery(null)} />
+        )}
       </div>
     </div>
   );

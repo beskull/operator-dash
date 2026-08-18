@@ -6,6 +6,30 @@ import WindowFrame from "./WindowFrame";
 
 const Grid = WidthProvider(GridLayout);
 
+/**
+ * Upward gravity: every window rises until it touches the window above it
+ * (or the top). Runs after a resize that SHRANK a window, so windows pushed
+ * down by an earlier grow nestle back together (v2.13).
+ */
+function compactUp(layout: GridPos[]): GridPos[] {
+  const items = layout.filter(Boolean).map((l) => ({ ...l }));
+  items.sort((a, b) => a.y - b.y || a.x - b.x);
+  const placed: GridPos[] = [];
+  for (const it of items) {
+    let y = 0;
+    for (;;) {
+      const hit = placed.find(
+        (p) => it.x < p.x + p.w && p.x < it.x + it.w && y < p.y + p.h && p.y < y + it.h
+      );
+      if (!hit) break;
+      y = hit.y + hit.h;
+    }
+    it.y = y;
+    placed.push(it);
+  }
+  return items;
+}
+
 interface GridCanvasProps {
   /** Grid entries for the active slot (all windows; filtered internally). */
   grid: GridPos[];
@@ -59,6 +83,9 @@ export default function GridCanvas({
   // bumped). Resizes DON'T: during a resize we want RGL's native collision
   // resolution, which pushes overlapped neighbors live, mid-gesture.
   const [resizing, setResizing] = useState(false);
+  // Set when a resize gesture shrank a window — the next onLayoutChange (the
+  // one RGL fires right after onResizeStop) compacts the grid upward.
+  const collapsePending = useRef(false);
   // Pre-drag rect, so an edge-drop or attach leaves the grid entry untouched.
   const dragOrigin = useRef<GridPos | null>(null);
   // Attach dwell tracking — same rule as floating: pause ~0.4s to arm.
@@ -105,7 +132,14 @@ export default function GridCanvas({
         isDraggable={arrangeMode}
         draggableHandle=".win-drag-handle"
         draggableCancel="button, input, a, select, textarea"
-        onLayoutChange={(layout: Layout[]) => onGridChange(layout as GridPos[])}
+        onLayoutChange={(layout: Layout[]) => {
+          if (collapsePending.current) {
+            collapsePending.current = false;
+            onGridChange(compactUp(layout as GridPos[]));
+          } else {
+            onGridChange(layout as GridPos[]);
+          }
+        }}
         onDragStart={(_l, oldItem) => {
           setGridDragging(true);
           onDragActive(true);
@@ -182,7 +216,10 @@ export default function GridCanvas({
           setGridDragging(true);
           onDragActive(true);
         }}
-        onResizeStop={() => {
+        onResizeStop={(_l, oldItem, newItem) => {
+          // Shrank vertically → pulled-down neighbors collapse back up on the
+          // layout commit that RGL fires right after this callback.
+          if (newItem && oldItem && newItem.h < oldItem.h) collapsePending.current = true;
           setResizing(false);
           setGridDragging(false);
           onDragActive(false);

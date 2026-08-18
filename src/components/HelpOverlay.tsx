@@ -6,39 +6,39 @@ const GESTURES: Array<[string, string]> = [
   ["Pause on a window while dragging", "attach its modules as TABS — violet highlight (~0.4s)"],
   ["Drag to a screen edge", "dock it — left / right / bottom (emerald zones)"],
   ["Corner handle, drag", "resize — always available, arrange ON or OFF"],
+  ["Resize taller, then shorter", "growing pushes windows below down; shrinking pulls them back up"],
   ["Double-click window header", "zen focus (fills the canvas)"],
-  ["Expand icon (grid windows)", "grow taller, pushing windows below down — works with arrange OFF; click again to restore"],
-  ["work mode (h)", "hides ALL top chrome (boards · workspaces · slots · control bar) + slims window headers"],
+  ["Minimize icon (header)", "one-click flatten to the bottom dock"],
+  ["work mode (h)", "hides ALL top chrome (dashboard · workspaces · control bar) + slims window headers"],
   ["Hover a tab → pop-out icon", "detach that module into its own floating window"],
   ["Click a dock strip", "restore the window"],
   ["tabs | scroll toggle", "switch a multi-module window's view"],
 ];
 
 const ADDING: Array<[string, string]> = [
-  ["+ window (control panel)", "new floating window — live URL, logs, chat, canvas…"],
-  ["+ board (top bar)", "a major area — up to 7"],
-  ["+ workspace (top bar)", "what windows exist + their layouts — up to 7 per board"],
-  ["layout slots 1 / 2 / 3", "your saved arrangements of this workspace — auto-saved, double-click to rename"],
+  ["+ window (control panel)", "new floating window — Chatbot, Add URL, or Agent flow"],
+  ["Dashboard picker (top left)", "switch dashboards, see access scopes, create new"],
+  ["+ workspace (top bar)", "what windows exist + their layouts — up to 7 per dashboard"],
+  ["Share icon (workspace chips)", "share this workspace — public / invite only / org"],
+  ["Search field → Enter", "opens a superchat overlay with your query"],
 ];
 
 const MENU_ACTIONS: Array<[string, string]> = [
   ["Dock to … edge ×3", "flatten left / right / bottom (same as drag-to-edge)"],
   ["Float / Dock", "pop out as a draggable overlay, or return to grid"],
   ["Zen focus", "fill the canvas, dim everything else"],
-  ["Send to background", "live behind all panels (backdrop)"],
   ["Flip side", "two-sided windows: config surface ↔ module"],
   ["Remove window", "only on live windows you spawned"],
 ];
 
 const SHORTCUTS: Array<[string, string]> = [
-  ["1 / 2 / 3", "switch layout slot"],
   ["m", "arrange mode on/off (default off)"],
   ["h", "work mode on/off — hide all top chrome"],
   ["⌘K", "focus command input"],
   ["`", "layout inspector"],
   ["t", "light / dark theme"],
   ["?", "this sheet"],
-  ["Esc", "exit zen focus"],
+  ["Esc", "exit zen focus / close overlays"],
 ];
 
 function Section({ title, rows }: { title: string; rows: Array<[string, string]> }) {

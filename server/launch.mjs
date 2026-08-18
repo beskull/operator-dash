@@ -10,7 +10,19 @@ import path from "node:path";
 import { existsSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { chromium } from "playwright";
+
+// v2.13: prefer patchright — a Playwright drop-in with the CDP-layer
+// Runtime.enable leak patched. That leak (not the JS fingerprints) is what
+// Cloudflare-protected sites like claude.ai and perplexity.ai key on; plain
+// Playwright AND plain Puppeteer both expose it, so switching libraries
+// wouldn't have helped. Falls back to stock playwright if not installed.
+let chromium;
+try {
+  ({ chromium } = await import("patchright"));
+  console.log("[remote] using patchright (CDP-stealth playwright)");
+} catch {
+  ({ chromium } = await import("playwright"));
+}
 
 export const PROFILE_DIR = path.join(path.dirname(fileURLToPath(import.meta.url)), ".chrome-profile");
 
@@ -90,7 +102,13 @@ export async function launchShared({ headless, profileDir } = {}) {
   let context;
   try {
     context = await chromium.launchPersistentContext(dir, { ...base, channel: "chrome" });
-  } catch {
+  } catch (e) {
+    // Surface the real cause before falling back — the common one is the
+    // profile being locked by another running renderer/login instance.
+    console.warn(
+      "[remote] real-Chrome launch failed (profile locked by another instance?); trying bundled Chromium.\n  cause:",
+      e.message?.split("\n")[0]
+    );
     context = await chromium.launchPersistentContext(dir, base);
   }
   await context.addInitScript(INIT_SCRIPT);

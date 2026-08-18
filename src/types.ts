@@ -56,6 +56,12 @@ export interface TwoSidedState {
 
 export type WindowHealth = "ok" | "warn" | "error";
 
+/** Dashboard access scope — mirrors the production dashboard's create dialog. */
+export type DashboardScope = "organization" | "workspaces" | "private";
+
+/** Workspace sharing scope. */
+export type ShareScope = "public" | "invite" | "org";
+
 export interface WindowState {
   id: string;
   title: string;
@@ -89,6 +95,8 @@ export interface GridPos {
 export interface WorkspaceState {
   id: string;
   name: string;
+  /** Who this workspace is shared with. Defaults to "invite" when unset. */
+  share?: ShareScope;
   /**
    * The workspace IS the layout: `windows` is the What, slots are the
    * user-saved arrangements of those windows. Arranging while a slot is
@@ -102,5 +110,7 @@ export interface WorkspaceState {
 export interface BoardState {
   id: string;
   name: string;
+  /** Access scope, shown in the dashboard picker. Defaults to "organization". */
+  scope?: DashboardScope;
   workspaces: WorkspaceState[];
 }

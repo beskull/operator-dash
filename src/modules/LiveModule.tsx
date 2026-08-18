@@ -1,4 +1,4 @@
-import { ExternalLink, Globe, Pencil, RotateCw, X } from "lucide-react";
+import { ChevronUp, ExternalLink, Globe, Pencil, RotateCw, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { REMOTE, withToken } from "../config";
 import { trackLiveUrl } from "../state/liveWindows";
@@ -18,6 +18,9 @@ interface LiveModuleProps {
 /** Embeds a live URL via iframe — point a window at any running app. */
 export default function LiveModule({ module, winId, onSetUrl, onRemove }: LiveModuleProps) {
   const [editing, setEditing] = useState(!module.url);
+  // v2.13: the URL chrome auto-hides once a URL is loaded — a slim strip at
+  // the top of the frame brings it back (hover or click).
+  const [chromeHidden, setChromeHidden] = useState(Boolean(module.url));
   const [draft, setDraft] = useState(module.url ?? "");
   const [reloadKey, setReloadKey] = useState(0);
   const [embedMode, setEmbedMode] = useState<"checking" | "iframe" | "remote">("checking");
@@ -68,11 +71,14 @@ export default function LiveModule({ module, winId, onSetUrl, onRemove }: LiveMo
     if (!url) return;
     onSetUrl?.(/^[a-z]+:\/\//i.test(url) ? url : `https://${url}`);
     setEditing(false);
+    setChromeHidden(true);
   };
 
   return (
-    <div className="flex h-full min-h-[280px] flex-col">
-      {/* Mini browser chrome */}
+    <div className="relative flex h-full min-h-[280px] flex-col">
+      {/* Mini browser chrome — hidden once a URL is loaded (always shown when
+          there's no URL, e.g. after a Clear from the header link bar) */}
+      {(!chromeHidden || !module.url) && (
       <div className="flex shrink-0 items-center gap-1.5 border-b border-slate-800/80 bg-slate-950/40 px-2 py-1.5 light:border-slate-200 light:bg-slate-100">
         <Globe size={11} className="shrink-0 text-slate-500" />
         {editing ? (
@@ -146,7 +152,31 @@ export default function LiveModule({ module, winId, onSetUrl, onRemove }: LiveMo
             <X size={11} />
           </button>
         )}
+        {module.url && (
+          <button
+            title="Hide this bar (hover the top edge of the page to bring it back)"
+            onClick={() => setChromeHidden(true)}
+            className="rounded p-1 text-slate-500 hover:bg-slate-800 hover:text-slate-200 light:hover:bg-slate-200 light:hover:text-slate-700"
+          >
+            <ChevronUp size={11} />
+          </button>
+        )}
       </div>
+      )}
+
+      {/* Reveal strip — hover or click to bring the URL bar back */}
+      {chromeHidden && module.url && (
+        <button
+          title={`${module.url} — show URL bar`}
+          onClick={() => setChromeHidden(false)}
+          onMouseEnter={() => setChromeHidden(false)}
+          className="absolute inset-x-0 top-0 z-20 flex h-2 items-start justify-center opacity-50 transition-opacity hover:opacity-100"
+        >
+          <span className="flex items-center rounded-b-md bg-slate-800/90 px-2.5 py-px text-slate-400 light:bg-slate-300/90 light:text-slate-600">
+            <Globe size={8} />
+          </span>
+        </button>
+      )}
 
       {/* Frame */}
       {module.url ? (
