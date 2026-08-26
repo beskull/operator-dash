@@ -10,10 +10,15 @@ const ADD_MENU: Array<{ type: ModuleType; label: string; hint: string; icon: typ
 ];
 
 /**
- * The primary creation action. Styled as the one filled button in the bar —
- * spawning a window is the most common thing an operator does.
+ * The primary creation action, and the only solid-filled button in the app.
+ * Orange deliberately: emerald already means "on / healthy" everywhere else,
+ * so the thing you press must not share a hue with state. Amber stays reserved
+ * for warnings — this is a deeper orange so the two never read as each other.
+ *
+ * A "panel" is any working surface: an agent, a chatbot, a website, a Builder
+ * view, a log stream. Content-agnostic on purpose.
  */
-export default function AddWindowButton({
+export default function AddPanelButton({
   onAddWindow,
 }: {
   onAddWindow: (moduleType: ModuleType, url?: string) => void;
@@ -39,15 +44,13 @@ export default function AddWindowButton({
     <div className="relative shrink-0">
       <button
         onClick={() => (open ? close() : setOpen(true))}
-        title="Add a window to this workspace"
-        className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11.5px] font-semibold transition-all ${
-          open
-            ? "bg-emerald-500/30 text-emerald-100 light:bg-emerald-500/25 light:text-emerald-800"
-            : "bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30 hover:text-emerald-100 light:text-emerald-700 light:hover:bg-emerald-500/25"
+        title="Add a panel to this workspace — agent, chatbot, site, or logs"
+        className={`flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[11.5px] font-semibold text-white shadow-[0_0_0_1px_rgba(249,115,22,0.45),0_6px_18px_-8px_rgba(249,115,22,0.65)] transition-all ${
+          open ? "bg-orange-600" : "bg-orange-500 hover:bg-orange-400"
         }`}
       >
         <Plus size={13} className="shrink-0" />
-        Window
+        Panel
       </button>
 
       {open && (

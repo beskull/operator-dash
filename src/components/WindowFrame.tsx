@@ -216,7 +216,7 @@ export default function WindowFrame({
                   <ArrowDownToLine size={12} />
                 </button>
               ) : (
-                <button title="Float window" onClick={toggleFloat} className={iconBtn}>
+                <button title="Float panel" onClick={toggleFloat} className={iconBtn}>
                   <PictureInPicture2 size={12} />
                 </button>
               )}
@@ -280,7 +280,7 @@ export default function WindowFrame({
               {m.title}
               <span
                 role="button"
-                title="Pop out into its own floating window"
+                title="Pop out into its own floating panel"
                 onClick={(e) => {
                   e.stopPropagation();
                   onDetachModule?.(m.id);
@@ -369,7 +369,7 @@ export default function WindowFrame({
                   </span>
                 )}
                 <button
-                  title="Detach into floating window"
+                  title="Detach into floating panel"
                   onClick={() => onDetachModule?.(m.id)}
                   className="ml-auto rounded p-0.5 text-slate-500 hover:bg-slate-700/70 hover:text-slate-200 light:hover:bg-slate-200 light:hover:text-slate-700"
                 >

@@ -66,7 +66,7 @@ export default function WindowMenu({
     { key: "flattenBottom", label: "Dock to bottom edge", icon: PanelBottomClose },
     isFloating
       ? { key: "float", label: "Dock back to grid", icon: ArrowDownToLine }
-      : { key: "float", label: "Float window", icon: PictureInPicture2 },
+      : { key: "float", label: "Float panel", icon: PictureInPicture2 },
     isFocused
       ? { key: "focus", label: "Exit zen focus", icon: Minimize2 }
       : { key: "focus", label: "Zen focus", icon: Crosshair },
@@ -74,7 +74,7 @@ export default function WindowMenu({
     // { key: "backdrop", label: "Send to background", icon: Layers },
     { key: "popOut", label: "Pop out current tab", icon: PictureInPicture2, hidden: !canPopOut },
     { key: "flip", label: "Flip side", icon: FlipHorizontal2, hidden: !isTwoSided },
-    { key: "remove", label: "Remove window", icon: X, danger: true, hidden: !removable },
+    { key: "remove", label: "Remove panel", icon: X, danger: true, hidden: !removable },
   ];
 
   return (

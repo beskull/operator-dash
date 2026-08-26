@@ -1,5 +1,6 @@
-import { Bot, SendHorizonal, Sparkles, User, X } from "lucide-react";
+import { Bot, SendHorizonal, User, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
+import FluxSuperchatIcon from "./icons/FluxSuperchatIcon";
 
 interface Message {
   role: "user" | "assistant";
@@ -61,8 +62,8 @@ export default function SuperchatOverlay({ initialQuery, onClose }: SuperchatOve
       <div className="window-capsule relative flex max-h-[70vh] w-[600px] max-w-full flex-col rounded-xl">
         {/* Header */}
         <div className="flex shrink-0 items-center gap-2 border-b border-slate-800/80 px-4 py-3 light:border-slate-200">
-          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-violet-400/30 to-cyan-400/20 text-violet-300 light:text-violet-600">
-            <Sparkles size={13} />
+          <span className="flex h-6 w-6 items-center justify-center rounded-md bg-indigo-500/15 text-indigo-400 light:text-indigo-600">
+            <FluxSuperchatIcon size={13} />
           </span>
           <div className="min-w-0">
             <div className="text-[12.5px] font-semibold text-slate-100 light:text-slate-800">
@@ -85,8 +86,8 @@ export default function SuperchatOverlay({ initialQuery, onClose }: SuperchatOve
         <div ref={scrollRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3">
           {messages.length === 0 && (
             <div className="flex h-full flex-col items-center justify-center gap-2 py-8 text-center">
-              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-500/15 text-violet-300 light:text-violet-600">
-                <Sparkles size={15} />
+              <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-indigo-500/15 text-indigo-400 light:text-indigo-600">
+                <FluxSuperchatIcon size={17} />
               </span>
               <div className="text-[12px] text-slate-400 light:text-slate-600">
                 Ask anything — it fans out across your agents.
@@ -99,7 +100,7 @@ export default function SuperchatOverlay({ initialQuery, onClose }: SuperchatOve
           {messages.map((m, i) => (
             <div key={i} className={`flex gap-2.5 ${m.role === "user" ? "justify-end" : ""}`}>
               {m.role === "assistant" && (
-                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-violet-500/15 text-violet-300 light:text-violet-600">
+                <span className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-indigo-500/15 text-indigo-400 light:text-indigo-600">
                   <Bot size={11} />
                 </span>
               )}
@@ -131,12 +132,12 @@ export default function SuperchatOverlay({ initialQuery, onClose }: SuperchatOve
               if (e.key === "Enter") send();
             }}
             placeholder="Ask across your agents…"
-            className="w-full rounded-md border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-[12px] text-slate-200 outline-none placeholder:text-slate-600 focus:border-violet-500/50 light:border-slate-300 light:bg-white light:text-slate-800 light:placeholder:text-slate-400"
+            className="w-full rounded-md border border-slate-700 bg-slate-900 px-2.5 py-1.5 text-[12px] text-slate-200 outline-none placeholder:text-slate-600 focus:border-indigo-500/50 light:border-slate-300 light:bg-white light:text-slate-800 light:placeholder:text-slate-400"
           />
           <button
             onClick={send}
             title="Send"
-            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-violet-500/20 text-violet-300 transition-colors hover:bg-violet-500/30 light:text-violet-700"
+            className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-indigo-500/20 text-indigo-300 transition-colors hover:bg-indigo-500/30 light:text-indigo-700"
           >
             <SendHorizonal size={13} />
           </button>

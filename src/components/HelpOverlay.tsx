@@ -2,25 +2,25 @@ import { X } from "lucide-react";
 
 const GESTURES: Array<[string, string]> = [
   ["arrange switch (m) — OFF by default", "unlock grid dragging/attaching — headers + canvas tint emerald while ON"],
-  ["Drag window header", "move (grid needs arrange ON; floating always moves)"],
-  ["Pause on a window while dragging", "attach its modules as TABS — violet highlight (~0.4s)"],
+  ["Drag panel header", "move (grid needs arrange ON; floating always moves)"],
+  ["Pause on a panel while dragging", "attach its views as TABS — violet highlight (~0.4s)"],
   ["Drag to a screen edge", "dock it — left / right / bottom (emerald zones)"],
   ["Corner handle, drag", "resize — always available, arrange ON or OFF"],
-  ["Resize taller, then shorter", "growing pushes windows below down; shrinking pulls them back up"],
-  ["Double-click window header", "zen focus (fills the canvas)"],
+  ["Resize taller, then shorter", "growing pushes panels below down; shrinking pulls them back up"],
+  ["Double-click panel header", "zen focus (fills the canvas)"],
   ["Minimize icon (header)", "one-click flatten to the bottom dock"],
-  ["work mode (h)", "hides the top bar entirely + slims window headers"],
-  ["Hover a tab → pop-out icon", "detach that module into its own floating window"],
-  ["Click a dock strip", "restore the window"],
-  ["tabs | scroll toggle", "switch a multi-module window's view"],
+  ["work mode (h)", "hides the top bar entirely + slims panel headers"],
+  ["Hover a tab → pop-out icon", "detach that view into its own floating panel"],
+  ["Click a dock strip", "restore the panel"],
+  ["tabs | scroll toggle", "switch a multi-view panel's layout"],
 ];
 
 const ADDING: Array<[string, string]> = [
-  ["+ Window (top bar)", "new window — Chatbot, Agent flow, or a live URL"],
+  ["+ Panel (top left)", "new panel — Chatbot, Agent flow, or a live URL"],
   ["Dashboard picker (top left)", "switch dashboards, see access scopes, create new"],
-  ["+ workspace (top bar)", "what windows exist + their layouts — up to 7 per dashboard"],
+  ["+ workspace (top bar)", "what panels exist + their layouts — up to 7, extras collapse behind +N"],
   ["Share icon (workspace chips)", "share this workspace — public / invite only / org"],
-  ["Ask (⌘K)", "pops superchat — one thread across every agent"],
+  ["Chat (⌘K)", "pops superchat — one thread across every agent"],
   ["Settings (⚙)", "canvas glow · layout inspector · renderer health"],
 ];
 
@@ -28,8 +28,8 @@ const MENU_ACTIONS: Array<[string, string]> = [
   ["Dock to … edge ×3", "flatten left / right / bottom (same as drag-to-edge)"],
   ["Float / Dock", "pop out as a draggable overlay, or return to grid"],
   ["Zen focus", "fill the canvas, dim everything else"],
-  ["Flip side", "two-sided windows: config surface ↔ module"],
-  ["Remove window", "only on live windows you spawned"],
+  ["Flip side", "two-sided panels: config surface ↔ view"],
+  ["Remove panel", "only on live panels you spawned"],
 ];
 
 const SHORTCUTS: Array<[string, string]> = [
@@ -68,7 +68,7 @@ export default function HelpOverlay({ onClose }: { onClose: () => void }) {
       <div className="window-capsule relative w-[560px] max-w-full rounded-xl p-5">
         <div className="mb-4 flex items-center justify-between">
           <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-200 light:text-slate-800">
-            Window interactions
+            Panel interactions
           </span>
           <button
             onClick={onClose}
@@ -80,7 +80,7 @@ export default function HelpOverlay({ onClose }: { onClose: () => void }) {
         <div className="space-y-5">
           <Section title="Gestures" rows={GESTURES} />
           <Section title="Adding things" rows={ADDING} />
-          <Section title="Window menu (⋯ in every header)" rows={MENU_ACTIONS} />
+          <Section title="Panel menu (⋯ in every header)" rows={MENU_ACTIONS} />
           <Section title="Keyboard" rows={SHORTCUTS} />
         </div>
       </div>

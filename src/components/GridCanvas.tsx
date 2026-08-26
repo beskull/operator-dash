@@ -111,7 +111,7 @@ export default function GridCanvas({
   if (items.length === 0) {
     return (
       <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-slate-800 font-mono text-[11px] text-slate-600 light:border-slate-300 light:text-slate-400">
-        no windows on the grid — add one with "+ window", or restore from a dock
+        no panels on the grid — add one with "+ Panel", or restore from a dock
       </div>
     );
   }

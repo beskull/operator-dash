@@ -103,7 +103,7 @@ export default function SettingsMenu({
             {/* Footer */}
             <div className="flex items-center gap-2 border-t border-slate-800/80 px-3 py-2 light:border-slate-200">
               <span className="font-mono text-[9.5px] text-slate-600 light:text-slate-400">
-                {windowCount} windows open
+                {windowCount} panels open
               </span>
               <button
                 onClick={() => {

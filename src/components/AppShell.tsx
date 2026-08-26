@@ -11,12 +11,15 @@ import {
   Move,
   Plus,
   Share2,
-  Sparkles,
 } from "lucide-react";
 import { useState } from "react";
 import type { BoardState, DashboardScope, ModuleType, ShareScope } from "../types";
-import AddWindowButton from "./AddWindowButton";
+import AddPanelButton from "./AddPanelButton";
+import FluxSuperchatIcon from "./icons/FluxSuperchatIcon";
 import SettingsMenu from "./SettingsMenu";
+
+/** Workspace chips shown inline before the rest collapse behind a +N button. */
+const VISIBLE_CHIPS = 3;
 
 interface AppShellProps {
   boards: BoardState[];
@@ -100,8 +103,8 @@ function scopeMeta(scope?: DashboardScope) {
 }
 
 /**
- * The single top row (v2.14). Identity · dashboard ▸ workspace hierarchy ·
- * then the action cluster: create, arrange, ask, work mode, settings.
+ * The single top row (v2.15). Identity · the primary create action ·
+ * dashboard ▸ workspace hierarchy · then arrange, chat, work mode, settings.
  * Everything ambient (glow, inspector, renderer, shortcuts) lives in ⚙.
  */
 export default function AppShell({
@@ -133,6 +136,19 @@ export default function AppShell({
   const [creating, setCreating] = useState(false);
   const [shareOpen, setShareOpen] = useState(false);
   const [addingWorkspace, setAddingWorkspace] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+
+  // Chips collapse past three — but the ACTIVE workspace is always on the bar,
+  // so you can never lose track of where you are.
+  const allWorkspaces = activeBoard.workspaces;
+  const activeIndex = allWorkspaces.findIndex((w) => w.id === activeWorkspaceId);
+  const visibleWorkspaces =
+    activeIndex >= VISIBLE_CHIPS
+      ? [...allWorkspaces.slice(0, VISIBLE_CHIPS - 1), allWorkspaces[activeIndex]]
+      : allWorkspaces.slice(0, VISIBLE_CHIPS);
+  const overflowWorkspaces = allWorkspaces.filter(
+    (w) => !visibleWorkspaces.some((v) => v.id === w.id)
+  );
 
   return (
     <header className="relative z-30 flex h-12 items-center gap-2.5 border-b border-slate-800/80 bg-[#0e1118]/90 px-3 backdrop-blur light:border-slate-200 light:bg-white/85">
@@ -140,10 +156,13 @@ export default function AppShell({
         <div className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-emerald-400/30 to-cyan-400/20 text-emerald-300 light:text-emerald-600">
           <LayoutGrid size={13} />
         </div>
-        <span className="hidden font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-300 lg:inline light:text-slate-700">
+        <span className="hidden font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-300 xl:inline light:text-slate-700">
           Operator
         </span>
       </div>
+
+      {/* The one action that creates something — first position, loudest weight. */}
+      <AddPanelButton onAddWindow={onAddWindow} />
 
       <div className="h-5 w-px shrink-0 bg-slate-800 light:bg-slate-200" />
 
@@ -262,11 +281,11 @@ export default function AppShell({
 
         {/* Workspace chips — nested inside the active dashboard */}
         <nav className="flex min-w-0 items-center gap-1.5 px-1.5 py-1">
-          {activeBoard.workspaces.map((w) => (
+          {visibleWorkspaces.map((w) => (
             <button
               key={w.id}
               onClick={() => onSelectWorkspace(w.id)}
-              className={`whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[10.5px] transition-colors ${
+              className={`max-w-32 truncate whitespace-nowrap rounded-full border px-2.5 py-0.5 text-[10.5px] transition-colors ${
                 w.id === activeWorkspaceId
                   ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300 light:text-emerald-700"
                   : "border-slate-700/80 text-slate-500 hover:border-slate-600 hover:text-slate-300 light:border-slate-300 light:hover:border-slate-400 light:hover:text-slate-700"
@@ -275,6 +294,53 @@ export default function AppShell({
               {w.name}
             </button>
           ))}
+
+          {/* Everything past three collapses in here */}
+          {overflowWorkspaces.length > 0 && (
+            <div className="relative shrink-0">
+              <button
+                onClick={() => setMoreOpen((v) => !v)}
+                title={`${overflowWorkspaces.length} more workspace${
+                  overflowWorkspaces.length > 1 ? "s" : ""
+                }`}
+                className={`flex items-center gap-0.5 whitespace-nowrap rounded-full border px-2 py-0.5 font-mono text-[10px] transition-colors ${
+                  moreOpen
+                    ? "border-slate-600 bg-slate-800 text-slate-200 light:border-slate-400 light:bg-slate-200 light:text-slate-800"
+                    : "border-slate-700/80 text-slate-500 hover:border-slate-600 hover:text-slate-300 light:border-slate-300 light:hover:text-slate-700"
+                }`}
+              >
+                +{overflowWorkspaces.length}
+                <ChevronDown
+                  size={9}
+                  className={`transition-transform ${moreOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+              {moreOpen && (
+                <>
+                  <div className="fixed inset-0 z-[45]" onClick={() => setMoreOpen(false)} />
+                  <div className="anim-fade-in absolute left-0 top-full z-[46] mt-1.5 w-52 overflow-hidden rounded-xl border border-slate-700/80 bg-[#12151d]/98 py-1 shadow-2xl backdrop-blur light:border-slate-300 light:bg-white/98">
+                    <div className="px-3 pb-1 pt-1.5 font-mono text-[9px] uppercase tracking-[0.16em] text-slate-500 light:text-slate-400">
+                      More workspaces
+                    </div>
+                    {overflowWorkspaces.map((w) => (
+                      <button
+                        key={w.id}
+                        onClick={() => {
+                          onSelectWorkspace(w.id);
+                          setMoreOpen(false);
+                        }}
+                        className="flex w-full items-center gap-2 px-3 py-1.5 text-left text-[11.5px] text-slate-300 transition-colors hover:bg-slate-700/60 light:text-slate-700 light:hover:bg-slate-100"
+                      >
+                        <span className="h-1 w-1 shrink-0 rounded-full bg-slate-600" />
+                        <span className="truncate">{w.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
           {!workspacesFull &&
             (addingWorkspace ? (
               <InlineNameInput
@@ -376,8 +442,6 @@ export default function AppShell({
 
       {/* ── Action cluster — ranked by how often it's touched ── */}
       <div className="ml-auto flex shrink-0 items-center gap-2">
-        <AddWindowButton onAddWindow={onAddWindow} />
-
         {/* Arrange mode: unlocks grid dragging + attach. Resize is always on. */}
         <button
           onClick={onToggleArrange}
@@ -409,11 +473,11 @@ export default function AppShell({
         <button
           onClick={onOpenSuperchat}
           title="Superchat (⌘K) — one conversation across every agent"
-          className="flex items-center gap-1.5 rounded-lg border border-violet-500/30 bg-violet-500/10 px-2.5 py-1.5 text-[11.5px] font-medium text-violet-300 transition-colors hover:border-violet-500/50 hover:bg-violet-500/20 hover:text-violet-100 light:border-violet-500/40 light:text-violet-700 light:hover:bg-violet-500/15"
+          className="flex items-center gap-1.5 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-1.5 text-[11.5px] font-medium text-indigo-300 transition-colors hover:border-indigo-500/50 hover:bg-indigo-500/20 hover:text-indigo-100 light:border-indigo-500/40 light:text-indigo-700 light:hover:bg-indigo-500/15"
         >
-          <Sparkles size={12} className="shrink-0" />
-          Ask
-          <kbd className="ml-0.5 shrink-0 rounded border border-violet-500/30 px-1 font-mono text-[9px] text-violet-400/90 light:border-violet-500/30 light:text-violet-600">
+          <FluxSuperchatIcon size={13} />
+          Chat
+          <kbd className="ml-0.5 shrink-0 rounded border border-indigo-500/30 px-1 font-mono text-[9px] text-indigo-400/90 light:border-indigo-500/30 light:text-indigo-600">
             ⌘K
           </kbd>
         </button>
