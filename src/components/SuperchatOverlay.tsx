@@ -7,7 +7,7 @@ interface Message {
 }
 
 interface SuperchatOverlayProps {
-  /** The search/command query that opened the overlay. */
+  /** The query that opened the overlay — empty when popped from the Ask button / ⌘K. */
   initialQuery: string;
   onClose: () => void;
 }
@@ -19,10 +19,14 @@ interface SuperchatOverlayProps {
  * agent flows and interfaces, and streams back here.
  */
 export default function SuperchatOverlay({ initialQuery, onClose }: SuperchatOverlayProps) {
-  const [messages, setMessages] = useState<Message[]>([
-    { role: "user", text: initialQuery },
-    { role: "assistant", text: mockReply(initialQuery) },
-  ]);
+  const [messages, setMessages] = useState<Message[]>(() =>
+    initialQuery.trim()
+      ? [
+          { role: "user", text: initialQuery },
+          { role: "assistant", text: mockReply(initialQuery) },
+        ]
+      : []
+  );
   const [draft, setDraft] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -79,6 +83,19 @@ export default function SuperchatOverlay({ initialQuery, onClose }: SuperchatOve
 
         {/* Messages */}
         <div ref={scrollRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto px-4 py-3">
+          {messages.length === 0 && (
+            <div className="flex h-full flex-col items-center justify-center gap-2 py-8 text-center">
+              <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-500/15 text-violet-300 light:text-violet-600">
+                <Sparkles size={15} />
+              </span>
+              <div className="text-[12px] text-slate-400 light:text-slate-600">
+                Ask anything — it fans out across your agents.
+              </div>
+              <div className="font-mono text-[9.5px] text-slate-600 light:text-slate-400">
+                chatbots · agent flows · live interfaces
+              </div>
+            </div>
+          )}
           {messages.map((m, i) => (
             <div key={i} className={`flex gap-2.5 ${m.role === "user" ? "justify-end" : ""}`}>
               {m.role === "assistant" && (

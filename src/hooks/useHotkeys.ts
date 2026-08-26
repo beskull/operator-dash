@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 
 interface HotkeyHandlers {
-  onFocusSearch: () => void;
+  onOpenSuperchat: () => void;
   onToggleInspector: () => void;
   onToggleTheme: () => void;
   onToggleHelp: () => void;
@@ -11,7 +11,7 @@ interface HotkeyHandlers {
 }
 
 export function useHotkeys({
-  onFocusSearch,
+  onOpenSuperchat,
   onToggleInspector,
   onToggleTheme,
   onToggleHelp,
@@ -21,10 +21,10 @@ export function useHotkeys({
 }: HotkeyHandlers) {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      // ⌘K / Ctrl+K always focuses the command input.
+      // ⌘K / Ctrl+K always pops superchat.
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
-        onFocusSearch();
+        onOpenSuperchat();
         return;
       }
 
@@ -47,7 +47,7 @@ export function useHotkeys({
     window.addEventListener("keydown", handler);
     return () => window.removeEventListener("keydown", handler);
   }, [
-    onFocusSearch,
+    onOpenSuperchat,
     onToggleInspector,
     onToggleTheme,
     onToggleHelp,

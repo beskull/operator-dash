@@ -9,18 +9,19 @@ const GESTURES: Array<[string, string]> = [
   ["Resize taller, then shorter", "growing pushes windows below down; shrinking pulls them back up"],
   ["Double-click window header", "zen focus (fills the canvas)"],
   ["Minimize icon (header)", "one-click flatten to the bottom dock"],
-  ["work mode (h)", "hides ALL top chrome (dashboard · workspaces · control bar) + slims window headers"],
+  ["work mode (h)", "hides the top bar entirely + slims window headers"],
   ["Hover a tab → pop-out icon", "detach that module into its own floating window"],
   ["Click a dock strip", "restore the window"],
   ["tabs | scroll toggle", "switch a multi-module window's view"],
 ];
 
 const ADDING: Array<[string, string]> = [
-  ["+ window (control panel)", "new floating window — Chatbot, Add URL, or Agent flow"],
+  ["+ Window (top bar)", "new window — Chatbot, Agent flow, or a live URL"],
   ["Dashboard picker (top left)", "switch dashboards, see access scopes, create new"],
   ["+ workspace (top bar)", "what windows exist + their layouts — up to 7 per dashboard"],
   ["Share icon (workspace chips)", "share this workspace — public / invite only / org"],
-  ["Search field → Enter", "opens a superchat overlay with your query"],
+  ["Ask (⌘K)", "pops superchat — one thread across every agent"],
+  ["Settings (⚙)", "canvas glow · layout inspector · renderer health"],
 ];
 
 const MENU_ACTIONS: Array<[string, string]> = [
@@ -34,9 +35,9 @@ const MENU_ACTIONS: Array<[string, string]> = [
 const SHORTCUTS: Array<[string, string]> = [
   ["m", "arrange mode on/off (default off)"],
   ["h", "work mode on/off — hide all top chrome"],
-  ["⌘K", "focus command input"],
+  ["⌘K", "pop superchat"],
   ["`", "layout inspector"],
-  ["t", "light / dark theme"],
+  ["t", "light / dark theme (no button — lives elsewhere later)"],
   ["?", "this sheet"],
   ["Esc", "exit zen focus / close overlays"],
 ];

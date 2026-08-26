@@ -7,21 +7,21 @@ import {
   LayoutGrid,
   Lock,
   Mail,
-  Moon,
+  Minus,
+  Move,
   Plus,
-  Search,
   Share2,
-  Sun,
+  Sparkles,
 } from "lucide-react";
-import { forwardRef, useState } from "react";
-import type { BoardState, DashboardScope, ShareScope } from "../types";
+import { useState } from "react";
+import type { BoardState, DashboardScope, ModuleType, ShareScope } from "../types";
+import AddWindowButton from "./AddWindowButton";
+import SettingsMenu from "./SettingsMenu";
 
 interface AppShellProps {
   boards: BoardState[];
   activeBoardId: string;
   activeWorkspaceId: string;
-  isLight: boolean;
-  onToggleTheme: () => void;
   onSelectBoard: (id: string) => void;
   onSelectWorkspace: (id: string) => void;
   onAddBoard: (name: string, scope: DashboardScope) => void;
@@ -29,10 +29,23 @@ interface AppShellProps {
   /** Active workspace's sharing scope + setter. */
   workspaceShare: ShareScope;
   onShareWorkspace: (scope: ShareScope) => void;
-  /** Search/command submitted (Enter) — opens the superchat overlay. */
-  onSubmitSearch: (query: string) => void;
+  /** Pops the superchat window. */
+  onOpenSuperchat: () => void;
   boardsFull: boolean;
   workspacesFull: boolean;
+  /** Grid actions — the two things an operator touches constantly. */
+  arrangeMode: boolean;
+  onToggleArrange: () => void;
+  onAddWindow: (moduleType: ModuleType, url?: string) => void;
+  /** Work mode strips all chrome, including this bar. */
+  onToggleMinimalHeaders: () => void;
+  /** Folded into the settings drawer. */
+  bgIntensity: number;
+  onBgIntensity: (v: number) => void;
+  inspectorOpen: boolean;
+  onToggleInspector: () => void;
+  onToggleHelp: () => void;
+  windowCount: number;
 }
 
 const DASHBOARD_SCOPES: Array<{
@@ -86,26 +99,35 @@ function scopeMeta(scope?: DashboardScope) {
   return DASHBOARD_SCOPES.find((s) => s.id === scope) ?? DASHBOARD_SCOPES[0];
 }
 
-/** Top bar: dashboard picker + nested workspace chips, search, theme. */
-const AppShell = forwardRef<HTMLInputElement, AppShellProps>(function AppShell(
-  {
-    boards,
-    activeBoardId,
-    activeWorkspaceId,
-    isLight,
-    onToggleTheme,
-    onSelectBoard,
-    onSelectWorkspace,
-    onAddBoard,
-    onAddWorkspace,
-    workspaceShare,
-    onShareWorkspace,
-    onSubmitSearch,
-    boardsFull,
-    workspacesFull,
-  },
-  searchRef
-) {
+/**
+ * The single top row (v2.14). Identity · dashboard ▸ workspace hierarchy ·
+ * then the action cluster: create, arrange, ask, work mode, settings.
+ * Everything ambient (glow, inspector, renderer, shortcuts) lives in ⚙.
+ */
+export default function AppShell({
+  boards,
+  activeBoardId,
+  activeWorkspaceId,
+  onSelectBoard,
+  onSelectWorkspace,
+  onAddBoard,
+  onAddWorkspace,
+  workspaceShare,
+  onShareWorkspace,
+  onOpenSuperchat,
+  boardsFull,
+  workspacesFull,
+  arrangeMode,
+  onToggleArrange,
+  onAddWindow,
+  onToggleMinimalHeaders,
+  bgIntensity,
+  onBgIntensity,
+  inspectorOpen,
+  onToggleInspector,
+  onToggleHelp,
+  windowCount,
+}: AppShellProps) {
   const activeBoard = boards.find((b) => b.id === activeBoardId) ?? boards[0];
   const [pickerOpen, setPickerOpen] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -113,17 +135,17 @@ const AppShell = forwardRef<HTMLInputElement, AppShellProps>(function AppShell(
   const [addingWorkspace, setAddingWorkspace] = useState(false);
 
   return (
-    <header className="relative z-30 flex h-12 items-center gap-3 border-b border-slate-800/80 bg-[#0e1118]/90 px-3 backdrop-blur light:border-slate-200 light:bg-white/85">
-      <div className="flex items-center gap-2">
+    <header className="relative z-30 flex h-12 items-center gap-2.5 border-b border-slate-800/80 bg-[#0e1118]/90 px-3 backdrop-blur light:border-slate-200 light:bg-white/85">
+      <div className="flex shrink-0 items-center gap-2">
         <div className="flex h-6 w-6 items-center justify-center rounded-md bg-gradient-to-br from-emerald-400/30 to-cyan-400/20 text-emerald-300 light:text-emerald-600">
           <LayoutGrid size={13} />
         </div>
-        <span className="font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-300 light:text-slate-700">
+        <span className="hidden font-mono text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-300 lg:inline light:text-slate-700">
           Operator
         </span>
       </div>
 
-      <div className="h-5 w-px bg-slate-800 light:bg-slate-200" />
+      <div className="h-5 w-px shrink-0 bg-slate-800 light:bg-slate-200" />
 
       {/* ── Dashboard ▸ Workspace cluster — one connected unit: the workspace
           chips live INSIDE the active dashboard's container, so the hierarchy
@@ -352,43 +374,73 @@ const AppShell = forwardRef<HTMLInputElement, AppShellProps>(function AppShell(
         </nav>
       </div>
 
-      {/* Command input — Enter opens the superchat overlay */}
-      <div className="ml-auto flex w-64 items-center gap-2 rounded-lg border border-slate-800 bg-slate-900/70 px-2.5 py-1.5 transition-colors focus-within:border-emerald-500/50 light:border-slate-300 light:bg-white">
-        <Search size={12} className="shrink-0 text-slate-600 light:text-slate-400" />
-        <input
-          ref={searchRef}
-          type="text"
-          placeholder="Ask superchat…"
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              const q = e.currentTarget.value.trim();
-              if (q) {
-                onSubmitSearch(q);
-                e.currentTarget.value = "";
-                e.currentTarget.blur();
-              }
-            }
-          }}
-          className="w-full bg-transparent text-[11.5px] text-slate-200 outline-none placeholder:text-slate-600 light:text-slate-800 light:placeholder:text-slate-400"
-        />
-        <kbd className="shrink-0 rounded border border-slate-700 px-1.5 py-px font-mono text-[9px] text-slate-500 light:border-slate-300 light:text-slate-400">
-          ⌘K
-        </kbd>
-      </div>
+      {/* ── Action cluster — ranked by how often it's touched ── */}
+      <div className="ml-auto flex shrink-0 items-center gap-2">
+        <AddWindowButton onAddWindow={onAddWindow} />
 
-      {/* Theme toggle */}
-      <button
-        onClick={onToggleTheme}
-        title="Toggle light/dark (t)"
-        className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-slate-800 bg-slate-900/70 text-slate-400 transition-colors hover:text-slate-200 light:border-slate-300 light:bg-white light:text-slate-500 light:hover:text-slate-800"
-      >
-        {isLight ? <Moon size={13} /> : <Sun size={13} />}
-      </button>
+        {/* Arrange mode: unlocks grid dragging + attach. Resize is always on. */}
+        <button
+          onClick={onToggleArrange}
+          title="Arrange mode (m): drag grid windows to move them, pause on a window to attach. Off = grid is locked against accidental moves; resize still works."
+          className={`flex items-center gap-1.5 rounded-lg border px-2 py-1.5 text-[11px] font-medium transition-all ${
+            arrangeMode
+              ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300 light:text-emerald-700"
+              : "border-slate-800 bg-slate-900/70 text-slate-400 hover:text-slate-200 light:border-slate-300 light:bg-white light:text-slate-500 light:hover:text-slate-800"
+          }`}
+        >
+          <Move size={11} className="shrink-0" />
+          arrange
+          <span
+            className={`relative h-3.5 w-6 shrink-0 rounded-full transition-colors ${
+              arrangeMode ? "bg-emerald-500/70" : "bg-slate-700 light:bg-slate-300"
+            }`}
+          >
+            <span
+              className={`absolute top-0.5 h-2.5 w-2.5 rounded-full bg-white transition-all ${
+                arrangeMode ? "left-3" : "left-0.5"
+              }`}
+            />
+          </span>
+        </button>
+
+        <div className="h-5 w-px bg-slate-800 light:bg-slate-200" />
+
+        {/* Superchat — pops the chat window; ⌘K does the same */}
+        <button
+          onClick={onOpenSuperchat}
+          title="Superchat (⌘K) — one conversation across every agent"
+          className="flex items-center gap-1.5 rounded-lg border border-violet-500/30 bg-violet-500/10 px-2.5 py-1.5 text-[11.5px] font-medium text-violet-300 transition-colors hover:border-violet-500/50 hover:bg-violet-500/20 hover:text-violet-100 light:border-violet-500/40 light:text-violet-700 light:hover:bg-violet-500/15"
+        >
+          <Sparkles size={12} className="shrink-0" />
+          Ask
+          <kbd className="ml-0.5 shrink-0 rounded border border-violet-500/30 px-1 font-mono text-[9px] text-violet-400/90 light:border-violet-500/30 light:text-violet-600">
+            ⌘K
+          </kbd>
+        </button>
+
+        <div className="h-5 w-px bg-slate-800 light:bg-slate-200" />
+
+        <button
+          onClick={onToggleMinimalHeaders}
+          title="Work mode (h): hide all chrome and slim the window headers — everything but your windows goes away"
+          className="flex items-center gap-1.5 rounded-lg border border-slate-800 bg-slate-900/70 px-2 py-1.5 text-[11px] text-slate-400 transition-colors hover:text-slate-200 light:border-slate-300 light:bg-white light:text-slate-500 light:hover:text-slate-800"
+        >
+          <Minus size={11} className="shrink-0" />
+          work mode
+        </button>
+
+        <SettingsMenu
+          bgIntensity={bgIntensity}
+          onBgIntensity={onBgIntensity}
+          inspectorOpen={inspectorOpen}
+          onToggleInspector={onToggleInspector}
+          onToggleHelp={onToggleHelp}
+          windowCount={windowCount}
+        />
+      </div>
     </header>
   );
-});
-
-export default AppShell;
+}
 
 /** Create-dashboard form — mirrors the production dialog: name + access scope. */
 function CreateDashboardForm({

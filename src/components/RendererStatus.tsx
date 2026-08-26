@@ -10,8 +10,11 @@ type Status = "checking" | "local" | "offline";
  * Renderer status pill + setup popover. The renderer runs on the USER'S own
  * machine (localhost:5198 by default) — the popover hands them a one-command
  * setup and a connection test.
+ *
+ * `variant="row"` renders the same information as a flat block with no popover,
+ * for embedding inside the settings panel (v2.14 — the pill left the top bar).
  */
-export default function RendererStatus() {
+export default function RendererStatus({ variant = "pill" }: { variant?: "pill" | "row" }) {
   const [status, setStatus] = useState<Status>("checking");
   const [open, setOpen] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -39,6 +42,43 @@ export default function RendererStatus() {
 
   const dot =
     status === "local" ? "bg-emerald-400" : status === "checking" ? "bg-amber-400" : "bg-slate-500";
+
+  if (variant === "row") {
+    return (
+      <div>
+        <div className="flex items-center gap-2">
+          <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${dot}`} />
+          <span className="text-[11.5px] text-slate-300 light:text-slate-700">Renderer</span>
+          <span className="font-mono text-[9.5px] text-slate-500 light:text-slate-400">
+            {status === "local" ? "connected" : status === "checking" ? "checking…" : "not detected"}
+          </span>
+          <button
+            onClick={check}
+            className="ml-auto shrink-0 rounded border border-slate-700 px-1.5 py-0.5 font-mono text-[9px] text-slate-400 transition-colors hover:border-emerald-500/50 hover:text-emerald-300 light:border-slate-300 light:text-slate-500 light:hover:text-emerald-700"
+          >
+            test
+          </button>
+        </div>
+        {status !== "local" && (
+          <div className="mt-1.5 flex items-center gap-1.5 rounded-md border border-slate-700/80 bg-slate-950/70 px-2 py-1 light:border-slate-300 light:bg-slate-50">
+            <code className="flex-1 truncate font-mono text-[9.5px] text-cyan-300 light:text-cyan-700">
+              {SETUP_CMD}
+            </code>
+            <button
+              onClick={copy}
+              title="Copy setup command"
+              className="shrink-0 rounded p-0.5 text-slate-500 hover:text-slate-200 light:hover:text-slate-700"
+            >
+              {copied ? <Check size={10} className="text-emerald-400" /> : <Copy size={10} />}
+            </button>
+          </div>
+        )}
+        <p className="mt-1 font-mono text-[9px] leading-relaxed text-slate-600 light:text-slate-400">
+          renders embed-blocked sites on your own machine · dev-only surface
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="relative">

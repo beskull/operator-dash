@@ -1,9 +1,8 @@
-import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useReducer, useState } from "react";
 import AppShell from "./components/AppShell";
 // v2.13: backdrop disabled — see WindowFrame note.
 // import BackdropLayer from "./components/BackdropLayer";
 import BackgroundCanvas from "./components/BackgroundCanvas";
-import ControlPanel from "./components/ControlPanel";
 import DebugInspector from "./components/DebugInspector";
 import EdgeZones from "./components/EdgeZones";
 import FlattenDock from "./components/FlattenDock";
@@ -41,7 +40,6 @@ export default function App() {
       ? "light"
       : "dark"
   );
-  const searchRef = useRef<HTMLInputElement>(null);
 
   const { board, workspace } = selectActive(state);
 
@@ -127,7 +125,7 @@ export default function App() {
   useHotkeys({
     onToggleArrange: () => setArrangeMode((v) => !v),
     onToggleMinimalHeaders: () => setMinimalHeaders((v) => !v),
-    onFocusSearch: () => searchRef.current?.select(),
+    onOpenSuperchat: () => setSuperchatQuery(""),
     onToggleInspector: () => setInspectorOpen((v) => !v),
     onToggleTheme: () => setTheme((t) => (t === "light" ? "dark" : "light")),
     onToggleHelp: () => setHelpOpen((v) => !v),
@@ -156,21 +154,28 @@ export default function App() {
     >
       {!minimalHeaders && (
         <AppShell
-          ref={searchRef}
           boards={state.boards}
           activeBoardId={board.id}
           activeWorkspaceId={workspace.id}
-          isLight={theme === "light"}
-          onToggleTheme={() => setTheme((t) => (t === "light" ? "dark" : "light"))}
           onSelectBoard={(boardId) => dispatch({ type: "selectBoard", boardId })}
           onSelectWorkspace={(workspaceId) => dispatch({ type: "selectWorkspace", workspaceId })}
           onAddBoard={addBoard}
           onAddWorkspace={addWorkspace}
           workspaceShare={workspace.share ?? "invite"}
           onShareWorkspace={shareWorkspace}
-          onSubmitSearch={(q) => setSuperchatQuery(q)}
+          onOpenSuperchat={() => setSuperchatQuery("")}
           boardsFull={state.boards.length >= MAX_BOARDS}
           workspacesFull={board.workspaces.length >= MAX_WORKSPACES}
+          arrangeMode={arrangeMode}
+          onToggleArrange={() => setArrangeMode((v) => !v)}
+          onAddWindow={addWindow}
+          onToggleMinimalHeaders={() => setMinimalHeaders((v) => !v)}
+          bgIntensity={bgIntensity}
+          onBgIntensity={setBgIntensity}
+          inspectorOpen={inspectorOpen}
+          onToggleInspector={() => setInspectorOpen((v) => !v)}
+          onToggleHelp={() => setHelpOpen(true)}
+          windowCount={windows.length}
         />
       )}
 
@@ -199,23 +204,7 @@ export default function App() {
         /> */}
 
         <div className="relative z-10 flex h-full flex-col">
-          {!minimalHeaders && (
-            <ControlPanel
-              arrangeMode={arrangeMode}
-              onToggleArrange={() => setArrangeMode((v) => !v)}
-              minimalHeaders={minimalHeaders}
-              onToggleMinimalHeaders={() => setMinimalHeaders((v) => !v)}
-              bgIntensity={bgIntensity}
-              onBgIntensity={setBgIntensity}
-              inspectorOpen={inspectorOpen}
-              onToggleInspector={() => setInspectorOpen((v) => !v)}
-              onToggleHelp={() => setHelpOpen(true)}
-              windowCount={windows.length}
-              onAddWindow={addWindow}
-            />
-          )}
-
-          <div className="flex min-h-0 flex-1 gap-2 px-3 pb-1">
+          <div className="flex min-h-0 flex-1 gap-2 px-3 pb-1 pt-2">
             {/* Left edge: flatten dock */}
             <FlattenDock edge="left" windows={windows} onRestore={restoreWindow} />
 
