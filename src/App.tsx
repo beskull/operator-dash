@@ -248,9 +248,10 @@ export default function App() {
           <div className="h-2 shrink-0" />
         </div>
 
-        {/* Zen / focus overlay — above the grid, below floating windows */}
+        {/* Zen / focus overlay — above the grid, below floating windows.
+            Full bleed: no padding, the window runs edge to edge (work-mode safe). */}
         {focused && (
-          <div className="anim-fade-in absolute inset-0 z-20 p-3 pt-14">
+          <div className="anim-fade-in absolute inset-0 z-20">
             <div
               className="absolute inset-0 bg-black/50 light:bg-slate-400/30"
               onClick={exitFocus}
