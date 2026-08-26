@@ -469,15 +469,17 @@ export default function AppShell({
 
         <div className="h-5 w-px bg-slate-800 light:bg-slate-200" />
 
-        {/* Superchat — pops the chat window; ⌘K does the same */}
+        {/* Superchat — pops the chat window; ⌘K does the same.
+            Hover INVERTS to a solid fill: the old tint-only hover turned the
+            label pale on a pale background in light mode (i.e. invisible). */}
         <button
           onClick={onOpenSuperchat}
           title="Superchat (⌘K) — one conversation across every agent"
-          className="flex items-center gap-1.5 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-1.5 text-[11.5px] font-medium text-indigo-300 transition-colors hover:border-indigo-500/50 hover:bg-indigo-500/20 hover:text-indigo-100 light:border-indigo-500/40 light:text-indigo-700 light:hover:bg-indigo-500/15"
+          className="group flex items-center gap-1.5 rounded-lg border border-indigo-500/30 bg-indigo-500/10 px-2.5 py-1.5 text-[11.5px] font-medium text-indigo-300 transition-colors hover:border-indigo-500 hover:bg-indigo-500 hover:text-white light:border-indigo-500/40 light:text-indigo-700 light:hover:border-indigo-600 light:hover:bg-indigo-600 light:hover:text-white"
         >
           <FluxSuperchatIcon size={13} />
           Chat
-          <kbd className="ml-0.5 shrink-0 rounded border border-indigo-500/30 px-1 font-mono text-[9px] text-indigo-400/90 light:border-indigo-500/30 light:text-indigo-600">
+          <kbd className="ml-0.5 shrink-0 rounded border border-indigo-500/30 px-1 font-mono text-[9px] text-indigo-400/90 transition-colors group-hover:border-white/40 group-hover:text-white/85 light:border-indigo-500/30 light:text-indigo-600">
             ⌘K
           </kbd>
         </button>

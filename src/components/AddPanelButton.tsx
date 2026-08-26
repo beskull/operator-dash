@@ -56,7 +56,9 @@ export default function AddPanelButton({
       {open && (
         <>
           <div className="fixed inset-0 z-[45]" onClick={close} />
-          <div className="anim-fade-in absolute right-0 top-full z-[46] mt-1.5 w-56 overflow-hidden rounded-xl border border-slate-700/80 bg-[#12151d]/98 shadow-2xl backdrop-blur light:border-slate-300 light:bg-white/98">
+          {/* Anchored left: the button lives at the far left of the bar, so a
+              right-anchored menu would hang off the page. */}
+          <div className="anim-fade-in absolute left-0 top-full z-[46] mt-1.5 w-56 overflow-hidden rounded-xl border border-slate-700/80 bg-[#12151d]/98 shadow-2xl backdrop-blur light:border-slate-300 light:bg-white/98">
             {urlMode ? (
               <div className="p-2.5">
                 <div className="mb-1.5 font-mono text-[9px] uppercase tracking-[0.16em] text-slate-500 light:text-slate-400">
